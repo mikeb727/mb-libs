@@ -8,15 +8,25 @@ INC=include
 LIB=lib
 SRC=src
 
-.PHONY: all shared static clean
+#DEBUG_FLAGS=-g -O0
+
+DESTDIR=
+
+.PHONY: all shared static clean install
 
 all: mbgfx mbchart
+
+install:
+	mkdir -p $(DESTDIR)/usr/lib/mb-libs/
+	install -m 755 $(LIB)/* $(DESTDIR)/usr/lib/mb-libs/
+	mkdir -p $(DESTDIR)/usr/include/mb-libs/
+	install -m 755 $(INC)/* $(DESTDIR)/usr/include/mb-libs/
 
 mbgfx: $(addprefix $(LIB)/, $(GFX_TARGETS))
 mbchart: $(addprefix $(LIB)/, $(CHART_TARGETS))
 
 clean:
-	rm -rf $(BIN) $(LIB)
+	rm -rf ./$(BIN) ./$(LIB)
 
 $(LIB)/$(LIB)%.so: $(BIN)/shared/%.o
 	mkdir -p $(LIB)
@@ -28,8 +38,8 @@ $(LIB)/$(LIB)%.a: $(BIN)/static/%.o
 
 $(BIN)/shared/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 -I$(INC) -fPIC -c $< -o $@
+	$(CPP) -std=c++17 $(DEBUG_FLAGS) -I$(INC) -fPIC -c $< -o $@
 
 $(BIN)/static/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 -I$(INC) -c $< -o $@
+	$(CPP) -std=c++17 $(DEBUG_FLAGS) -I$(INC) -c $< -o $@
