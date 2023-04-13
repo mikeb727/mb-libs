@@ -1,22 +1,26 @@
+#include "mbgfx.h"
+
+#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #include <random>
 
-#include "mbgfx.h"
-
 using std::cerr;
 
 namespace GraphicsTools {
 
 int InitGraphics() {
-  // Initialize SDL
-  int result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-  if (result == -1) {
-    cerr << SDL_GetError() << "\n";
+  int result = glfwInit();
+  if (!result){
+    int errCode; const char *errLog; errCode  = glfwGetError(&errLog);
+    cerr << "could not load GLFW: " << errLog << " (GLFW error " << errCode << ")\n";
+    return result;
   }
-  return result;
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  
 }
 
 int InitText() {
@@ -28,7 +32,7 @@ int InitText() {
 }
 
 int CloseGraphics() {
-  SDL_Quit();
+  glfwTerminate();
   return 0;
 }
 

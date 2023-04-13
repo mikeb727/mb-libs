@@ -1,5 +1,5 @@
 /* Functions for using graphics with SDL. Includes
-    the SDL headers, so they don't have to be
+    the OpenGL headers, so they don't have to be
     included in main. */
 
 #ifndef IMAGES_H
@@ -7,9 +7,8 @@
 
 #include <string>
 
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_image.h"
-#include "SDL2/SDL_ttf.h"
+#include "glad/gl.h"
+#include <GLFW/glfw3.h>
 
 namespace GraphicsTools {
 
