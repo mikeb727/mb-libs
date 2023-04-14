@@ -5,18 +5,21 @@
 #ifndef IMAGES_H
 #define IMAGES_H
 
+#include "errors.h"
+
+#include <map>
 #include <string>
 
 #include "glad/gl.h"
 #include <GLFW/glfw3.h>
 
+#include <freetype/freetype.h>
+
 namespace GraphicsTools {
 
 // library initialization
 int InitGraphics();
-int InitText();
 int CloseGraphics();
-int CloseText();
 
 enum TextAlignModeH { Left, Center, Right };
 
@@ -50,16 +53,27 @@ ColorRgba blend(ColorRgba c1, double w1, ColorRgba c2, double w2);
 ColorRgba randomColor();
 ColorRgba hsv2rgb(ColorHsv in);
 
+// data extracted from font using freetype
+struct TextGlyph {
+  unsigned int glTextureId;
+  unsigned int sizeX, sizeY;
+  int bearingX, bearingY;
+  long charAdvance; // x distance to next glyph
+};
+typedef std::map<char, TextGlyph> charMap;
+
 class Font {
 private:
-  int size;
-  std::string filename;
-  TTF_Font *f;
+  int _size;
+  std::string _filename;
+  charMap _glyphs;
+  bool _ready;
 
 public:
-  Font(const char *file, int displaySize); // size in points
+  Font(std::string file, int displaySize); // size in points
   ~Font();
-  TTF_Font *font() const { return f; };
+  TextGlyph glyph(char ch) const { return _glyphs.at(ch); };
+  bool isReady() const {return _ready;};
 };
 
 class Window {
@@ -68,14 +82,16 @@ public:
   ~Window();
 
   // getters
-  int height() const { return _height; };
   int width() const { return _width; };
+  int height() const { return _height; };
 
   // clear, then update to show graphics
+  // keep clear, but make update responsibility of attached scene
   void clear();
   void update();
 
   // drawing functions
+  // make scene responsible for these
   void drawRectangle(GraphicsTools::ColorRgba color, int x, int y, int w,
                      int h); // (x,y) is upper-left corner
   void drawCircle(GraphicsTools::ColorRgba, int x, int y, int r);
@@ -89,14 +105,13 @@ public:
                 int x2, int y2);
 
   // load, then draw to show an image
-  SDL_Texture *loadImage(std::string filename);
-  void drawImage(SDL_Texture *, int, int, int);
+  // use our texture object from the opengl tutorial
+  void drawImage(void *, int, int, int);
 
 private:
-  SDL_Renderer *ren;
-  std::string name;
-  int _height, _width;
-  SDL_Window *win;
+  std::string _title;
+  int _width, _height;
+  GLFWwindow *win;
 };
 
 } // namespace GraphicsTools

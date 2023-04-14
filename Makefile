@@ -4,7 +4,7 @@ CHART_TARGETS=$(addprefix libmbchart, .so .a)
 CPP=clang++
 
 BIN=bin
-INC=include
+INC=$(addprefix -I, include /usr/include/freetype2)
 LIB=lib
 SRC=src
 
@@ -38,8 +38,8 @@ $(LIB)/$(LIB)%.a: $(BIN)/static/%.o
 
 $(BIN)/shared/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DEBUG_FLAGS) -I$(INC) -fPIC -c $< -o $@
+	$(CPP) -std=c++17 $(DEBUG_FLAGS) $(INC) -fPIC -c $< -o $@
 
 $(BIN)/static/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DEBUG_FLAGS) -I$(INC) -c $< -o $@
+	$(CPP) -std=c++17 $(DEBUG_FLAGS) $(INC) -c $< -o $@
