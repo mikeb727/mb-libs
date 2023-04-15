@@ -1,11 +1,15 @@
-/* Functions for using graphics with SDL. Includes
+/* Functions for using graphics with OpenGL. Includes
     the OpenGL headers, so they don't have to be
     included in main. */
 
 #ifndef IMAGES_H
 #define IMAGES_H
 
+#include "camera.h"
 #include "errors.h"
+#include "light.h"
+#include "renderObject.h"
+#include "shader.h"
 
 #include <map>
 #include <string>
@@ -14,6 +18,8 @@
 #include <GLFW/glfw3.h>
 
 #include <freetype/freetype.h>
+
+class Scene;
 
 namespace GraphicsTools {
 
@@ -73,7 +79,67 @@ public:
   Font(std::string file, int displaySize); // size in points
   ~Font();
   TextGlyph glyph(char ch) const { return _glyphs.at(ch); };
-  bool isReady() const {return _ready;};
+  bool isReady() const { return _ready; };
+  int size() const { return _size; };
+};
+
+class Scene {
+public:
+  // ctor, dtor
+  Scene();
+  ~Scene();
+
+  // manage elements
+  void addRenderObject(RenderObject *obj) { _objs.emplace(_nextObjId++, obj); };
+  void removeRenderObject(int id) { _objs.erase(id); };
+  void addCamera(Camera *cam) { _cameras.emplace(_nextCamId++, cam); };
+  void removeCamera(int id) { _cameras.erase(id); };
+  void setDirLight(DirectionalLight *light) { _dLight = light; };
+  void setActiveCamera(int camId) { _activeCamId = camId; };
+
+  // getters
+  Camera *activeCamera() const;
+  int windowWidth() const { return _windowWidth; };
+  int windowHeight() const { return _windowHeight; };
+
+  // setters
+  void setWindowDimensions(int w, int h);
+
+  void setupShadows();
+  void renderShadows();
+  void render() const;
+
+  // 2D drawing
+  void drawText(GraphicsTools::Font font, std::string text,
+                GraphicsTools::ColorRgba textColor, float x0, float y0,
+                float width, float scale) const;
+  void drawCircle2D(GraphicsTools::ColorRgba, float x, float y, float r);
+
+private:
+  // give each object a unique ID. possibly remove this and have external user
+  // of the scene responsible for managing unique object IDs
+  std::map<int, RenderObject *> _objs;
+  int _nextObjId;
+
+  std::map<int, Camera *> _cameras;
+  int _nextCamId, _activeCamId;
+
+  // only support a single directional light for simplicity. eventually use
+  // deferred rendering to handle multiple lights/shadows
+  DirectionalLight *_dLight;
+
+  // for generating shadowmaps
+  unsigned int _shadowFbo, _depthMap;
+  glm::mat4 _lightView, _lightProj;
+  ShaderProgram *_depthShader;
+
+  // for rendering all 2D elements
+  unsigned int _2DVao, _2DVbo;
+  glm::mat4 _2DProj;
+  ShaderProgram *_2DShader;
+
+  // for recomputing the text projection upon window resizing
+  int _windowWidth, _windowHeight;
 };
 
 class Window {
@@ -89,12 +155,14 @@ public:
   // keep clear, but make update responsibility of attached scene
   void clear();
   void update();
+  bool shouldClose() const { return glfwWindowShouldClose(_win); };
+  void setShouldClose(int close) { glfwSetWindowShouldClose(_win, close); };
 
   // drawing functions
   // make scene responsible for these
   void drawRectangle(GraphicsTools::ColorRgba color, int x, int y, int w,
                      int h); // (x,y) is upper-left corner
-  void drawCircle(GraphicsTools::ColorRgba, int x, int y, int r);
+  void drawCircle(GraphicsTools::ColorRgba, float x, float y, float r);
   void drawCircleGradient(GraphicsTools::ColorRgba outer,
                           GraphicsTools::ColorRgba inner, int x, int y, int r);
   void drawText(std::string str, GraphicsTools::Font *font,
@@ -108,10 +176,19 @@ public:
   // use our texture object from the opengl tutorial
   void drawImage(void *, int, int, int);
 
+  void attachScene(Scene *sc) {
+    _sc = sc;
+    _sc->setWindowDimensions(_width, _height);
+  };
+  Scene *activeScene() const { return _sc; };
+
 private:
   std::string _title;
   int _width, _height;
-  GLFWwindow *win;
+  GLFWwindow *_win;
+  Scene *_sc;
+
+  static void resizeFramebufferCallback(GLFWwindow *win, int w, int h);
 };
 
 } // namespace GraphicsTools

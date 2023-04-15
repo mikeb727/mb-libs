@@ -185,26 +185,38 @@ Window::Window(std::string title, int width, int height)
     : _title(title), _width(width), _height(height) {
 
   // Initialize window
-  win = glfwCreateWindow(_width, _height, _title.c_str(), NULL, NULL);
-  if (!win) {
+  _win = glfwCreateWindow(_width, _height, _title.c_str(), NULL, NULL);
+  if (!_win) {
     const char *errLog;
     int errCode = glfwGetError(&errLog);
     std::fprintf(stderr, "could not create window: %s (GLFW error %d)\n",
                  errLog, errCode);
     glfwTerminate();
   }
-  glfwMakeContextCurrent(win);
+  glfwMakeContextCurrent(_win);
   if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
     getGlErrors();
   }
+
+  glfwSetWindowUserPointer(_win, this);
+  glfwSetFramebufferSizeCallback(_win, resizeFramebufferCallback);
+
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glViewport(0, 0, _width, _height);
 }
 
-Window::~Window() { glfwDestroyWindow(win); }
+Window::~Window() { glfwDestroyWindow(_win); }
 
-void Window::update() { glfwSwapBuffers(win); }
+void Window::update() {
+  glfwSwapBuffers(_win);
+  glfwPollEvents();
+}
 
 void Window::clear() {
-  glClearColor(0.1, 0.1, 0.2, 1);
+  glClearColor(0.0, 0.0, 0.0, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -220,7 +232,9 @@ void Window::drawRectangle(GraphicsTools::ColorRgba color, int x, int y, int w,
   // SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
 }
 
-void Window::drawCircle(GraphicsTools::ColorRgba color, int x, int y, int r) {
+void Window::drawCircle(GraphicsTools::ColorRgba color, float x, float y,
+                        float r) {
+  _sc->drawCircle2D(color, x, y, r);
   // SDL_SetRenderDrawColor(ren, color.r, color.g, color.b, color.a);
   // for (int _y = y - r; _y <= y + r; _y++) {
   //   int w = sqrt((r * r) - ((_y - y) * (_y - y)) - r);
@@ -247,7 +261,7 @@ void Window::drawCircleGradient(GraphicsTools::ColorRgba outer,
 void Window::drawText(std::string text, GraphicsTools::Font *font,
                       GraphicsTools::ColorRgba color, int x, int y,
                       GraphicsTools::TextAlignModeH al) {
-
+  _sc->drawText(*font, text, color, x, y, -1, 1);
   // int alignmentShift = 0;
 
   // // We need to first render to a surface as that's what TTF_RenderText
@@ -295,6 +309,15 @@ void Window::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,
   //   }
   // }
   // SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+}
+
+void Window::resizeFramebufferCallback(GLFWwindow *win, int w, int h) {
+  Window* gfxWin = (Window*)glfwGetWindowUserPointer(win);
+  Scene* _sc = gfxWin->activeScene();
+  glViewport(0, 0, w, h);
+  if (_sc) {
+    _sc->setWindowDimensions(w, h);
+  }
 }
 
 } // namespace GraphicsTools
