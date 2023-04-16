@@ -2,6 +2,7 @@
 #include "mbgfx.h"
 #include "shader.h"
 #include <iostream>
+#include <vector>
 
 const int SHADOW_TEX_SIZE = 4096;
 const float SHADOW_FRUSTUM_DEPTH = 100;
@@ -9,9 +10,11 @@ const float SHADOW_FRUSTUM_WIDTH = 60;
 
 const int VBO_2D_MAX_SIZE = 400;
 
+const int CIRCLE_2D_RESOLUTION = 40;
+
 GraphicsTools::Scene::Scene()
     : _windowWidth(0), _windowHeight(0), _nextCamId(0), _nextObjId(0),
-      _activeCamId(-1), _dLight(NULL) {
+      _activeCamId(-1), _dLight(NULL), _depth(99.0f) {
 
   glGenVertexArrays(1, &_2DVao);
   glGenBuffers(1, &_2DVbo);
@@ -40,7 +43,7 @@ void GraphicsTools::Scene::setWindowDimensions(int w, int h) {
   _windowWidth = w;
   _windowHeight = h;
   _2DProj = glm::ortho(0.0f, (float)_windowWidth, 0.0f, (float)_windowHeight,
-                       -100.0f, 100.0f);
+                       100.0f, -100.0f);
 };
 
 void GraphicsTools::Scene::setupShadows() {
@@ -104,17 +107,16 @@ void GraphicsTools::Scene::render() const {
   }
 }
 
-void GraphicsTools::Scene::drawText(GraphicsTools::Font font, std::string str,
-                                    GraphicsTools::ColorRgba color,
-                                    float x0, float y0, float width,
-                                    float drawScale) const {
+void GraphicsTools::Scene::drawText2D(GraphicsTools::Font font, std::string str,
+                                      GraphicsTools::ColorRgba color, float x0,
+                                      float y0, float width, float drawScale) {
   _2DShader->use();
-  _2DShader->setUniform("color",
-                        glm::vec4(color.r, color.g, color.b, 1.0));
+  _2DShader->setUniform("color", glm::vec4(color.r, color.g, color.b, 1.0));
   _2DShader->setUniform("transform", _2DProj);
   glActiveTexture(GL_TEXTURE0);
   _2DShader->setUniform("tex", 0);
   _2DShader->setUniform("useTex", 1);
+  _2DShader->setUniform("drawDepth", _depth);
   glBindVertexArray(_2DVao);
 
   float x = x0, y = y0;
@@ -148,6 +150,7 @@ void GraphicsTools::Scene::drawText(GraphicsTools::Font font, std::string str,
     x += (tch.charAdvance >> 6) * drawScale;
   }
   glBindVertexArray(0);
+  _depth -= 1.0f;
 }
 
 void GraphicsTools::Scene::drawCircle2D(GraphicsTools::ColorRgba color, float x,
@@ -157,8 +160,8 @@ void GraphicsTools::Scene::drawCircle2D(GraphicsTools::ColorRgba color, float x,
   verts_v.push_back(y);
   verts_v.push_back(0.0f);
   verts_v.push_back(0.0f);
-  for (int i = 0; i < 41; ++i) {
-    float angle = (360.0f * i / 40.0f) * (M_PI / 180.0f);
+  for (int i = 0; i < CIRCLE_2D_RESOLUTION + 1; ++i) {
+    float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
     verts_v.push_back(x + (r * cos(angle)));
     verts_v.push_back(y + (r * sin(angle)));
     verts_v.push_back(0.0f);
@@ -167,13 +170,58 @@ void GraphicsTools::Scene::drawCircle2D(GraphicsTools::ColorRgba color, float x,
   float *verts = verts_v.data();
   _2DShader->use();
   _2DShader->setUniform("transform", _2DProj);
-  glm::vec4 colorIn(color.r, color.g, color.b, color.a);
-  colorIn /= 255.0f;
-  _2DShader->setUniform("color", colorIn);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  shaderColor /= 255.0f;
+  _2DShader->setUniform("color", shaderColor);
   _2DShader->setUniform("useTex", 0);
+  _2DShader->setUniform("drawDepth", _depth);
   glBindVertexArray(_2DVao);
   glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, (1+verts_v.size()) * sizeof(float), verts);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glDrawArrays(GL_TRIANGLE_FAN, 0, (1+verts_v.size()) / 4);
+  glDrawArrays(GL_TRIANGLE_FAN, 0, verts_v.size() / 4);
+  _depth -= 1.0f;
+}
+
+void GraphicsTools::Scene::drawRectangle2D(GraphicsTools::ColorRgba color,
+                                           float x1, float y1, float x2,
+                                           float y2) {
+  std::vector<float> verts_v = {x1, y1, 0.0f, 0.0f, x2, y1, 0.0f, 0.0f,
+                                x2, y2, 0.0f, 0.0f, x2, y2, 0.0f, 0.0f,
+                                x1, y2, 0.0f, 0.0f, x1, y1, 0.0f, 0.0f};
+  float *verts = verts_v.data();
+  _2DShader->use();
+  _2DShader->setUniform("transform", _2DProj);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  shaderColor /= 255.0f;
+  _2DShader->setUniform("color", shaderColor);
+  _2DShader->setUniform("useTex", 0);
+  _2DShader->setUniform("drawDepth", _depth);
+  glBindVertexArray(_2DVao);
+  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
+  _depth -= 1.0f;
+}
+
+void GraphicsTools::Scene::drawLine2D(GraphicsTools::ColorRgba color,
+                                      float thickness, float x1, float y1,
+                                      float x2, float y2) {
+  std::vector<float> verts_v = {x1, y1, 0.0f, 0.0f, x2, y2, 0.0f, 0.0f};
+  float *verts = verts_v.data();
+  _2DShader->use();
+  _2DShader->setUniform("transform", _2DProj);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  shaderColor /= 255.0f;
+  _2DShader->setUniform("color", shaderColor);
+  _2DShader->setUniform("useTex", 0);
+  _2DShader->setUniform("drawDepth", _depth);
+  glBindVertexArray(_2DVao);
+  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glLineWidth(thickness);
+  glDrawArrays(GL_LINES, 0, verts_v.size() / 4);
+  _depth -= 1.0f;
 }

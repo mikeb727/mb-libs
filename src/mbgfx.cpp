@@ -218,102 +218,37 @@ void Window::update() {
 void Window::clear() {
   glClearColor(0.0, 0.0, 0.0, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  _sc->resetDepth();
 }
 
-void Window::drawRectangle(GraphicsTools::ColorRgba color, int x, int y, int w,
-                           int h) {
-  // SDL_SetRenderDrawColor(ren, color.r, color.g, color.b, color.a);
-  // SDL_Rect target;
-  // target.x = x;
-  // target.y = y;
-  // target.w = w;
-  // target.h = h;
-  // SDL_RenderFillRect(ren, &target);
-  // SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+void Window::drawRectangle(GraphicsTools::ColorRgba color, int x1, int y1,
+                           int x2, int y2) {
+  _sc->drawRectangle2D(color, x1, y1, x2, y2);
 }
 
 void Window::drawCircle(GraphicsTools::ColorRgba color, float x, float y,
                         float r) {
   _sc->drawCircle2D(color, x, y, r);
-  // SDL_SetRenderDrawColor(ren, color.r, color.g, color.b, color.a);
-  // for (int _y = y - r; _y <= y + r; _y++) {
-  //   int w = sqrt((r * r) - ((_y - y) * (_y - y)) - r);
-  //   SDL_RenderDrawLine(ren, x - w, _y, x + w, _y);
-  // }
-  // SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
 }
 
 void Window::drawCircleGradient(GraphicsTools::ColorRgba outer,
                                 GraphicsTools::ColorRgba inner, int x, int y,
-                                int r) {
-  // for (int _y = y - r; _y <= y + r; _y++) {
-  //   int w = sqrt(pow(r, 2) - pow(_y - y, 2) - r);
-  //   for (int _x = x - w; _x <= x + w; _x++) {
-  //     int d = sqrt(pow(abs(x - _x), 2) + pow(abs(y - _y), 2));
-  //     ColorRgba pointColor = blend(outer, d, inner, r - d);
-  //     SDL_SetRenderDrawColor(ren, pointColor.r, pointColor.g, pointColor.b,
-  //                            pointColor.a);
-  //     SDL_RenderDrawPoint(ren, _x, _y);
-  //   }
-  // }
-  // SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
-}
+                                int r) {}
+
 void Window::drawText(std::string text, GraphicsTools::Font *font,
                       GraphicsTools::ColorRgba color, int x, int y,
                       GraphicsTools::TextAlignModeH al) {
-  _sc->drawText(*font, text, color, x, y, -1, 1);
-  // int alignmentShift = 0;
-
-  // // We need to first render to a surface as that's what TTF_RenderText
-  // returns,
-  // // then load that surface into a texture
-  // SDL_Surface *surf = TTF_RenderText_Blended(
-  //     font->font(), text.c_str(),
-  //     SDL_Color({(unsigned char)color.r, (unsigned char)color.g,
-  //                (unsigned char)color.b, (unsigned char)color.a}));
-  // if (surf == NULL) {
-  //   std::cerr << "surface is null: " << SDL_GetError() << "\n";
-  // }
-  // SDL_Texture *texture = SDL_CreateTextureFromSurface(ren, surf);
-  // if (texture == NULL) {
-  //   std::cerr << "texture is null: " << SDL_GetError() << "\n";
-  // }
-
-  // // shift the x-coordinate based on the text alignment
-  // if (al == Center) {
-  //   TTF_SizeText(font->font(), text.c_str(), &alignmentShift, NULL);
-  //   alignmentShift = alignmentShift / 2;
-  // } else if (al == Right) {
-  //   TTF_SizeText(font->font(), text.c_str(), &alignmentShift, NULL);
-  // }
-
-  // SDL_Rect pos;
-  // pos.x = x - alignmentShift;
-  // pos.y = y;
-  // SDL_QueryTexture(texture, NULL, NULL, &pos.w, &pos.h);
-
-  // SDL_RenderCopy(ren, texture, NULL, &pos);
-
-  // // Clean up the surface and font
-  // SDL_DestroyTexture(texture);
-  // SDL_FreeSurface(surf);
+  _sc->drawText2D(*font, text, color, x, y, -1, 1);
 }
 
 void Window::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,
                       int y1, int x2, int y2) {
-  // SDL_SetRenderDrawColor(ren, color.r, color.g, color.b, color.a);
-  // for (int dy = -thickness / 2; dy <= thickness / 2; dy++) {
-  //   int w = sqrt(pow(thickness / 2, 2) - pow(dy, 2));
-  //   for (int dx = -w; dx <= w; dx++) {
-  //     SDL_RenderDrawLine(ren, x1 + dx, y1 + dy, x2 + dx, y2 + dy);
-  //   }
-  // }
-  // SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+  _sc->drawLine2D(color, thickness, x1, y1, x2, y2);
 }
 
 void Window::resizeFramebufferCallback(GLFWwindow *win, int w, int h) {
-  Window* gfxWin = (Window*)glfwGetWindowUserPointer(win);
-  Scene* _sc = gfxWin->activeScene();
+  Window *gfxWin = (Window *)glfwGetWindowUserPointer(win);
+  Scene *_sc = gfxWin->activeScene();
   glViewport(0, 0, w, h);
   if (_sc) {
     _sc->setWindowDimensions(w, h);

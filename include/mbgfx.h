@@ -104,16 +104,21 @@ public:
 
   // setters
   void setWindowDimensions(int w, int h);
+  void resetDepth() { _depth = -99.0f; };
 
   void setupShadows();
   void renderShadows();
   void render() const;
 
   // 2D drawing
-  void drawText(GraphicsTools::Font font, std::string text,
-                GraphicsTools::ColorRgba textColor, float x0, float y0,
-                float width, float scale) const;
-  void drawCircle2D(GraphicsTools::ColorRgba, float x, float y, float r);
+  void drawText2D(GraphicsTools::Font font, std::string text,
+                  GraphicsTools::ColorRgba textColor, float x0, float y0,
+                  float width, float scale);
+  void drawCircle2D(GraphicsTools::ColorRgba color, float x, float y, float r);
+  void drawRectangle2D(GraphicsTools::ColorRgba color, float x1, float y1,
+                       float x2, float y2);
+  void drawLine2D(GraphicsTools::ColorRgba color, float thickness, float x1,
+                  float y1, float x2, float y2);
 
 private:
   // give each object a unique ID. possibly remove this and have external user
@@ -137,6 +142,7 @@ private:
   unsigned int _2DVao, _2DVbo;
   glm::mat4 _2DProj;
   ShaderProgram *_2DShader;
+  float _depth; // increment for every 2D element drawn
 
   // for recomputing the text projection upon window resizing
   int _windowWidth, _windowHeight;
@@ -160,8 +166,8 @@ public:
 
   // drawing functions
   // make scene responsible for these
-  void drawRectangle(GraphicsTools::ColorRgba color, int x, int y, int w,
-                     int h); // (x,y) is upper-left corner
+  void drawRectangle(GraphicsTools::ColorRgba color, int x1, int y1, int x2,
+                     int y2);
   void drawCircle(GraphicsTools::ColorRgba, float x, float y, float r);
   void drawCircleGradient(GraphicsTools::ColorRgba outer,
                           GraphicsTools::ColorRgba inner, int x, int y, int r);

@@ -21,7 +21,6 @@ DEBUG_FLAGS=-g -O0
 DESTDIR=
 
 .PHONY: all shared static clean install
-.PRECIOUS: $(BIN)/static/%.o
 
 all: mbgfx
 tests: $(TEST)/test1 $(TEST)/test2
