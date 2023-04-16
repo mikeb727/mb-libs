@@ -105,15 +105,16 @@ void GraphicsTools::Scene::render() const {
 }
 
 void GraphicsTools::Scene::drawText(GraphicsTools::Font font, std::string str,
-                                    GraphicsTools::ColorRgba textColor,
+                                    GraphicsTools::ColorRgba color,
                                     float x0, float y0, float width,
                                     float drawScale) const {
   _2DShader->use();
-  _2DShader->setUniform("textColor",
-                        glm::vec3(textColor.r, textColor.g, textColor.b));
+  _2DShader->setUniform("color",
+                        glm::vec4(color.r, color.g, color.b, 1.0));
   _2DShader->setUniform("transform", _2DProj);
   glActiveTexture(GL_TEXTURE0);
-  _2DShader->setUniform("glyphTex", 0);
+  _2DShader->setUniform("tex", 0);
+  _2DShader->setUniform("useTex", 1);
   glBindVertexArray(_2DVao);
 
   float x = x0, y = y0;
@@ -169,6 +170,7 @@ void GraphicsTools::Scene::drawCircle2D(GraphicsTools::ColorRgba color, float x,
   glm::vec4 colorIn(color.r, color.g, color.b, color.a);
   colorIn /= 255.0f;
   _2DShader->setUniform("color", colorIn);
+  _2DShader->setUniform("useTex", 0);
   glBindVertexArray(_2DVao);
   glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
   glBufferSubData(GL_ARRAY_BUFFER, 0, (1+verts_v.size()) * sizeof(float), verts);

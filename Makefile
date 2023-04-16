@@ -24,7 +24,7 @@ DESTDIR=
 .PRECIOUS: $(BIN)/static/%.o
 
 all: mbgfx
-tests: $(TEST)/test1
+tests: $(TEST)/test1 $(TEST)/test2
 
 install:
 	mkdir -p $(DESTDIR)/usr/lib/mb-libs/
@@ -35,7 +35,10 @@ install:
 mbgfx: $(addprefix $(LIB)/, $(GFX_TARGETS))
 mbchart: $(addprefix $(LIB)/, $(CHART_TARGETS))
 
-$(TEST)/test1: $(BIN)/test/windowTest.o mbgfx
+$(TEST)/test1: $(BIN)/test/test1.o mbgfx
+	$(LINK) -o $@ $(DEBUG_FLAGS) $(TEST_LFLAGS) $<
+
+$(TEST)/test2: $(BIN)/test/test2.o mbgfx
 	$(LINK) -o $@ $(DEBUG_FLAGS) $(TEST_LFLAGS) $<
 
 clean:
