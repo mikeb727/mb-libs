@@ -8,7 +8,9 @@ const int SHADOW_TEX_SIZE = 4096;
 const float SHADOW_FRUSTUM_DEPTH = 100;
 const float SHADOW_FRUSTUM_WIDTH = 60;
 
-const int VBO_2D_MAX_SIZE = 400;
+const int VBO_2D_MAX_SIZE = 4000;
+const int VBO_3D_MAX_SIZE = 40000;
+const int VAO_3D_DATA_WIDTH = 8;
 
 const int CIRCLE_2D_RESOLUTION = 40;
 
@@ -24,6 +26,26 @@ GraphicsTools::Scene::Scene()
                GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  glGenVertexArrays(1, &_3DVao);
+  glGenBuffers(1, &_3DVbo);
+  glBindVertexArray(_3DVao);
+  glBindBuffer(GL_ARRAY_BUFFER, _3DVbo);
+  glBufferData(GL_ARRAY_BUFFER, VBO_3D_MAX_SIZE * sizeof(float), NULL,
+               GL_DYNAMIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                        VAO_3D_DATA_WIDTH * sizeof(float), 0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                        VAO_3D_DATA_WIDTH * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+                        VAO_3D_DATA_WIDTH * sizeof(float),
+                        (void *)(6 * sizeof(float)));
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
@@ -90,6 +112,7 @@ void GraphicsTools::Scene::renderShadows() {
 }
 
 void GraphicsTools::Scene::render() const {
+  glViewport(0, 0, _windowWidth, _windowHeight);
   if (_activeCamId != -1 && _dLight) {
     _dLight->sp->use();
     _dLight->sp->setUniform("dirLight.dir", _dLight->_dir);

@@ -19,8 +19,6 @@
 
 #include <freetype/freetype.h>
 
-class Scene;
-
 namespace GraphicsTools {
 
 // library initialization
@@ -90,7 +88,11 @@ public:
   ~Scene();
 
   // manage elements
-  void addRenderObject(RenderObject *obj) { _objs.emplace(_nextObjId++, obj); };
+  void addRenderObject(RenderObject *obj) {
+    _objs.emplace(_nextObjId++, obj);
+    obj->setVao(_3DVao);
+    obj->setVbo(_3DVbo);
+  };
   void removeRenderObject(int id) { _objs.erase(id); };
   void addCamera(Camera *cam) { _cameras.emplace(_nextCamId++, cam); };
   void removeCamera(int id) { _cameras.erase(id); };
@@ -144,6 +146,9 @@ private:
   ShaderProgram *_2DShader;
   float _depth; // increment for every 2D element drawn
 
+  // for rendering all 3D elements
+  unsigned int _3DVao, _3DVbo;
+
   // for recomputing the text projection upon window resizing
   int _windowWidth, _windowHeight;
 };
@@ -156,6 +161,7 @@ public:
   // getters
   int width() const { return _width; };
   int height() const { return _height; };
+  GLFWwindow *glfwWindow() const { return _win; };
 
   // clear, then update to show graphics
   // keep clear, but make update responsibility of attached scene

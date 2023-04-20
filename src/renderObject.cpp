@@ -12,47 +12,38 @@ const float CUBE_NORMAL_SLERP_FACTOR = 0.0f;
 // assume no texture in objects by default
 RenderObject::RenderObject()
     : _pos(glm::zero<glm::vec3>()), _rot(glm::zero<glm::vec3>()),
-      _modelMat(glm::identity<glm::mat4>()), _preBufferLen(0), _sp(NULL),
-      _material(NULL), _vDataWidth(6) {}
-
-void RenderObject::clearVertexData() {
-  _verts.clear();
-  _indices.clear();
-  if (_preBufferLen > 0) {
-    delete _preBuffer;
-    _preBufferLen = 0;
-  }
-}
+      _modelMat(glm::identity<glm::mat4>()), _sp(NULL), _material(NULL),
+      _vDataWidth(8) {}
 
 void RenderObject::genCube(float sideLength) {
-  clearVertexData();
+
+  std::vector<glm::vec3> verts_v;
+  std::vector<unsigned int> indices_v;
+  std::vector<glm::vec3> normals_v;
 
   for (int i = 0; i < 8; ++i) {
-    _verts.push_back(
+    verts_v.push_back(
         glm::vec3(sideLength * (float)((i & 1)) - (0.5f * sideLength),
                   sideLength * (float)((i & 2) >> 1) - (0.5f * sideLength),
                   sideLength * (float)((i & 4) >> 2) - (0.5f * sideLength)));
   }
 
-  _indices = {2, 3, 1, 1, 0, 2, 3, 7, 5, 5, 1, 3, 7, 6, 4, 4, 5, 7,
-              6, 2, 0, 0, 4, 6, 3, 2, 6, 6, 7, 3, 5, 4, 0, 0, 1, 5};
+  indices_v = {2, 3, 1, 1, 0, 2, 3, 7, 5, 5, 1, 3, 7, 6, 4, 4, 5, 7,
+               6, 2, 0, 0, 4, 6, 3, 2, 6, 6, 7, 3, 5, 4, 0, 0, 1, 5};
 
-  // prepare the vertex buffer
-  _preBufferLen = _indices.size() * _vDataWidth;
-  _preBuffer = new float[_preBufferLen];
-  // compute normals triangle by triangle, since all the info is available to us
+  // compute normals per triangle, since all the info is available to us
   for (int tri = 0; tri < 12; ++tri) {
     int vertOffsetA = (3 * tri) + 0;
     int vertOffsetB = (3 * tri) + 1;
     int vertOffsetC = (3 * tri) + 2;
 
-    int vertIndexA = _indices[vertOffsetA];
-    int vertIndexB = _indices[vertOffsetB];
-    int vertIndexC = _indices[vertOffsetC];
+    int vertIndexA = indices_v[vertOffsetA];
+    int vertIndexB = indices_v[vertOffsetB];
+    int vertIndexC = indices_v[vertOffsetC];
 
-    glm::vec3 vertA = _verts[vertIndexA];
-    glm::vec3 vertB = _verts[vertIndexB];
-    glm::vec3 vertC = _verts[vertIndexC];
+    glm::vec3 vertA = verts_v[vertIndexA];
+    glm::vec3 vertB = verts_v[vertIndexB];
+    glm::vec3 vertC = verts_v[vertIndexC];
 
     // spherical normals (for interpolation)
     glm::vec3 sphNormalA = glm::normalize(vertA);
@@ -72,37 +63,32 @@ void RenderObject::genCube(float sideLength) {
     glm::vec3 vertNormalC = glm::normalize(
         glm::slerp(vertNormalCommon, sphNormalC, CUBE_NORMAL_SLERP_FACTOR));
 
-    _preBuffer[_vDataWidth * vertOffsetA + 0] = _verts[vertIndexA].x;
-    _preBuffer[_vDataWidth * vertOffsetA + 1] = _verts[vertIndexA].y;
-    _preBuffer[_vDataWidth * vertOffsetA + 2] = _verts[vertIndexA].z;
-    _preBuffer[_vDataWidth * vertOffsetA + 3] = vertNormalA.x;
-    _preBuffer[_vDataWidth * vertOffsetA + 4] = vertNormalA.y;
-    _preBuffer[_vDataWidth * vertOffsetA + 5] = vertNormalA.z;
-
-    _preBuffer[_vDataWidth * vertOffsetB + 0] = _verts[vertIndexB].x;
-    _preBuffer[_vDataWidth * vertOffsetB + 1] = _verts[vertIndexB].y;
-    _preBuffer[_vDataWidth * vertOffsetB + 2] = _verts[vertIndexB].z;
-    _preBuffer[_vDataWidth * vertOffsetB + 3] = vertNormalB.x;
-    _preBuffer[_vDataWidth * vertOffsetB + 4] = vertNormalB.y;
-    _preBuffer[_vDataWidth * vertOffsetB + 5] = vertNormalB.z;
-
-    _preBuffer[_vDataWidth * vertOffsetC + 0] = _verts[vertIndexC].x;
-    _preBuffer[_vDataWidth * vertOffsetC + 1] = _verts[vertIndexC].y;
-    _preBuffer[_vDataWidth * vertOffsetC + 2] = _verts[vertIndexC].z;
-    _preBuffer[_vDataWidth * vertOffsetC + 3] = vertNormalC.x;
-    _preBuffer[_vDataWidth * vertOffsetC + 4] = vertNormalC.y;
-    _preBuffer[_vDataWidth * vertOffsetC + 5] = vertNormalC.z;
+    normals_v.push_back(vertNormalA);
+    normals_v.push_back(vertNormalB);
+    normals_v.push_back(vertNormalC);
   }
 
-  setupGl();
+  for (unsigned int i : indices_v) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    _vData.push_back(normals_v.at(i).x);
+    _vData.push_back(normals_v.at(i).y);
+    _vData.push_back(normals_v.at(i).z);
+    // use vertex coords as 2D texture coords
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+  }
 }
 
 void RenderObject::genSphere(float radius, int numLatSegments,
                              int numLonSegments) {
-  clearVertexData();
+  std::vector<glm::vec3> verts_v;
+  std::vector<unsigned int> indices_v;
+  std::vector<glm::vec3> normals_v;
 
   // north pole
-  _verts.push_back(glm::vec3(0.0f, radius, 0.0f));
+  verts_v.push_back(glm::vec3(0.0f, radius, 0.0f));
 
   // latitude rings
   for (int i = 1; i < numLatSegments; ++i) {
@@ -112,23 +98,23 @@ void RenderObject::genSphere(float radius, int numLatSegments,
     // longitude points along ring
     for (int j = 0; j < numLonSegments; ++j) {
       float majorAngle = (M_PI / 180.0f) * -(360.0f * j / numLonSegments);
-      _verts.push_back(glm::vec3(cos(majorAngle) * latRingRadius,
-                                 sin(minorAngle) * radius,
-                                 sin(majorAngle) * latRingRadius));
+      verts_v.push_back(glm::vec3(cos(majorAngle) * latRingRadius,
+                                  sin(minorAngle) * radius,
+                                  sin(majorAngle) * latRingRadius));
     }
   }
 
   // south pole
-  _verts.push_back(glm::vec3(0.0f, -radius, 0.0f));
+  verts_v.push_back(glm::vec3(0.0f, -radius, 0.0f));
 
   // north cap
   for (int j = 0; j < numLonSegments; ++j) {
     int triIndexA = 0;
     int triIndexB = 1 + (j % numLonSegments);
     int triIndexC = 1 + ((j + 1) % numLonSegments);
-    _indices.push_back(triIndexA);
-    _indices.push_back(triIndexB);
-    _indices.push_back(triIndexC);
+    indices_v.push_back(triIndexA);
+    indices_v.push_back(triIndexB);
+    indices_v.push_back(triIndexC);
   }
   // middle bands
   for (int i = 0; i < numLatSegments - 2; ++i) {
@@ -138,12 +124,12 @@ void RenderObject::genSphere(float radius, int numLatSegments,
       int quadIndexC =
           1 + ((i + 1) * numLonSegments) + ((j + 1) % numLonSegments);
       int quadIndexD = 1 + (i * numLonSegments) + ((j + 1) % numLonSegments);
-      _indices.push_back(quadIndexA);
-      _indices.push_back(quadIndexB);
-      _indices.push_back(quadIndexC);
-      _indices.push_back(quadIndexC);
-      _indices.push_back(quadIndexD);
-      _indices.push_back(quadIndexA);
+      indices_v.push_back(quadIndexA);
+      indices_v.push_back(quadIndexB);
+      indices_v.push_back(quadIndexC);
+      indices_v.push_back(quadIndexC);
+      indices_v.push_back(quadIndexD);
+      indices_v.push_back(quadIndexA);
     }
   }
 
@@ -154,33 +140,30 @@ void RenderObject::genSphere(float radius, int numLatSegments,
     int triIndexB = ((numLatSegments - 1) * numLonSegments) + 1;
     int triIndexC = 1 + ((numLatSegments - 2) * numLonSegments) +
                     ((j + 1) % numLonSegments);
-    _indices.push_back(triIndexA);
-    _indices.push_back(triIndexB);
-    _indices.push_back(triIndexC);
+    indices_v.push_back(triIndexA);
+    indices_v.push_back(triIndexB);
+    indices_v.push_back(triIndexC);
   }
 
-  _preBufferLen = _indices.size() * _vDataWidth;
-  _preBuffer = new float[_preBufferLen];
-  // only need one vertex to compute the normal for a sphere
-  for (int i = 0; i < _indices.size(); ++i) {
-    _preBuffer[(_vDataWidth * i) + 0] = _verts[_indices[i]].x;
-    _preBuffer[(_vDataWidth * i) + 1] = _verts[_indices[i]].y;
-    _preBuffer[(_vDataWidth * i) + 2] = _verts[_indices[i]].z;
-    _preBuffer[(_vDataWidth * i) + 3] = _preBuffer[(_vDataWidth * i)] / radius;
-    _preBuffer[(_vDataWidth * i) + 4] =
-        _preBuffer[(_vDataWidth * i) + 1] / radius;
-    _preBuffer[(_vDataWidth * i) + 5] =
-        _preBuffer[(_vDataWidth * i) + 2] / radius;
+  for (unsigned int i : indices_v) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    glm::vec3 normal = glm::normalize(verts_v.at(i));
+    _vData.push_back(normal.x);
+    _vData.push_back(normal.y);
+    _vData.push_back(normal.z);
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
   }
-  setupGl();
 }
 
 void RenderObject::genTorus(float majorRadius, float minorRadius,
                             int numMinorSegments, int numMajorSegments) {
 
-  clearVertexData();
-
-  std::vector<glm::vec3> normals;
+  std::vector<glm::vec3> verts_v;
+  std::vector<unsigned int> indices_v;
+  std::vector<glm::vec3> normals_v;
 
   // rings centered on axis of rotation first. that way same sphere indexing
   // can be used
@@ -189,14 +172,14 @@ void RenderObject::genTorus(float majorRadius, float minorRadius,
     for (int i = 0; i < numMajorSegments; ++i) {
       float majorAngle = (M_PI / 180.0f) * (360.0f * i / numMajorSegments);
       // points along ring
-      _verts.push_back(glm::vec3(
+      verts_v.push_back(glm::vec3(
           (majorRadius + (minorRadius * cos(minorAngle))) * cos(majorAngle),
           minorRadius * sin(minorAngle),
           (majorRadius + (minorRadius * cos(minorAngle))) * sin(majorAngle)));
       // calc normals here, since they're a function of the angles
-      normals.push_back(glm::vec3(cos(majorAngle) * cos(minorAngle),
-                                  sin(minorAngle),
-                                  sin(majorAngle) * cos(minorAngle)));
+      normals_v.push_back(glm::vec3(cos(majorAngle) * cos(minorAngle),
+                                    sin(minorAngle),
+                                    sin(majorAngle) * cos(minorAngle)));
     }
   }
 
@@ -211,102 +194,72 @@ void RenderObject::genTorus(float majorRadius, float minorRadius,
                        ((j + 1) % numMajorSegments);
       int quadIndexD = ((i % numMinorSegments) * numMajorSegments) +
                        ((j + 1) % numMajorSegments);
-      _indices.push_back(quadIndexA);
-      _indices.push_back(quadIndexB);
-      _indices.push_back(quadIndexC);
-      _indices.push_back(quadIndexC);
-      _indices.push_back(quadIndexD);
-      _indices.push_back(quadIndexA);
+      indices_v.push_back(quadIndexA);
+      indices_v.push_back(quadIndexB);
+      indices_v.push_back(quadIndexC);
+      indices_v.push_back(quadIndexC);
+      indices_v.push_back(quadIndexD);
+      indices_v.push_back(quadIndexA);
     }
   }
 
-  _preBufferLen = _indices.size() * _vDataWidth;
-  _preBuffer = new float[_preBufferLen];
-  for (int i = 0; i < _indices.size(); ++i) {
-    _preBuffer[(_vDataWidth * i) + 0] = _verts[_indices[i]].x;
-    _preBuffer[(_vDataWidth * i) + 1] = _verts[_indices[i]].y;
-    _preBuffer[(_vDataWidth * i) + 2] = _verts[_indices[i]].z;
-    _preBuffer[(_vDataWidth * i) + 3] = normals[_indices[i]].x;
-    _preBuffer[(_vDataWidth * i) + 4] = normals[_indices[i]].y;
-    _preBuffer[(_vDataWidth * i) + 5] = normals[_indices[i]].z;
+  for (unsigned int i : indices_v) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    _vData.push_back(normals_v.at(i).x);
+    _vData.push_back(normals_v.at(i).y);
+    _vData.push_back(normals_v.at(i).z);
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
   }
-  setupGl();
 }
 
 void RenderObject::genPlane(float width, float depth) {
-  clearVertexData();
+
+  std::vector<glm::vec3> verts_v;
+  std::vector<unsigned int> indices_v;
 
   for (int i = 0; i < 4; ++i) {
-    _verts.push_back(glm::vec3(width * (float)((i & 1)) - (0.5f * width), 0.0f,
-                               depth * (float)((i & 2) >> 1) - (0.5f * depth)));
+    verts_v.push_back(
+        glm::vec3(width * (float)((i & 1)) - (0.5f * width), 0.0f,
+                  depth * (float)((i & 2) >> 1) - (0.5f * depth)));
   }
 
-  _indices = {0, 2, 3, 3, 1, 0};
+  indices_v = {0, 2, 3, 3, 1, 0};
 
-  _preBufferLen = _indices.size() * _vDataWidth;
-  _preBuffer = new float[_preBufferLen];
-
-  for (int i = 0; i < _indices.size(); ++i) {
-    _preBuffer[(_vDataWidth * i) + 0] = _verts[_indices[i]].x;
-    _preBuffer[(_vDataWidth * i) + 1] = _verts[_indices[i]].y;
-    _preBuffer[(_vDataWidth * i) + 2] = _verts[_indices[i]].z;
-    _preBuffer[(_vDataWidth * i) + 3] = 0.0f;
-    _preBuffer[(_vDataWidth * i) + 4] = 1.0f;
-    _preBuffer[(_vDataWidth * i) + 5] = 0.0f;
-    // texture coords (fixed scaling for checkerboard; TODO make this a
-    // variable)
-    if (_material->diffuseMap) {
-      _preBuffer[(_vDataWidth * i) + 6] = _verts[_indices[i]].x * 0.1f;
-      _preBuffer[(_vDataWidth * i) + 7] = _verts[_indices[i]].z * 0.1f;
-    }
-  }
-
-  setupGl();
-}
-
-void RenderObject::setupGl() {
-  glGenVertexArrays(1, &_vao);
-  glGenBuffers(1, &_vbo);
-
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-  // careful: sizeof() for dynamic arrays returns the pointer size, *not* the
-  // array size! use the size of individual data items times the array length
-  // instead!
-  glBufferData(GL_ARRAY_BUFFER, _preBufferLen * sizeof(float), _preBuffer,
-               GL_STATIC_DRAW);
-
-  glBindVertexArray(_vao);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, _vDataWidth * sizeof(float),
-                        (void *)0);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, _vDataWidth * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glEnableVertexAttribArray(1);
-  if (_material && _material->diffuseMap) {
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, _vDataWidth * sizeof(float),
-                          (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+  for (unsigned int i : indices_v) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    _vData.push_back(0.0f);
+    _vData.push_back(1.0f);
+    _vData.push_back(0.0f);
+    _vData.push_back(verts_v.at(i).x * 0.1f);
+    _vData.push_back(verts_v.at(i).z * 0.1f);
   }
 }
 
 void RenderObject::debugPrint() {
-  for (int i = 0; i < _indices.size(); ++i) {
-    std::fprintf(stderr, "%i (index %i)\n", i, _indices[i]);
-    std::fprintf(stderr, "vert %f, %f, %f\n", _preBuffer[(_vDataWidth * i) + 0],
-                 _preBuffer[(_vDataWidth * i) + 1],
-                 _preBuffer[(_vDataWidth * i) + 2]);
-    std::fprintf(stderr, "norm %f, %f, %f\n", _preBuffer[(_vDataWidth * i) + 3],
-                 _preBuffer[(_vDataWidth * i) + 4],
-                 _preBuffer[(_vDataWidth * i) + 5]);
-    if (_material->diffuseMap) {
-      std::fprintf(stderr, "tex %f, %f\n", _preBuffer[(_vDataWidth * i) + 6],
-                   _preBuffer[(_vDataWidth * i) + 7]);
-    }
-    std::fprintf(stderr, "\n");
-  }
+  // for (int i = 0; i < _indices.size(); ++i) {
+  //   std::fprintf(stderr, "%i (index %i)\n", i, _indices[i]);
+  //   std::fprintf(stderr, "vert %f, %f, %f\n", _preBuffer[(_vDataWidth * i) +
+  //   0],
+  //                _preBuffer[(_vDataWidth * i) + 1],
+  //                _preBuffer[(_vDataWidth * i) + 2]);
+  //   std::fprintf(stderr, "norm %f, %f, %f\n", _preBuffer[(_vDataWidth * i) +
+  //   3],
+  //                _preBuffer[(_vDataWidth * i) + 4],
+  //                _preBuffer[(_vDataWidth * i) + 5]);
+  //   if (_material->diffuseMap) {
+  //     std::fprintf(stderr, "tex %f, %f\n", _preBuffer[(_vDataWidth * i) + 6],
+  //                  _preBuffer[(_vDataWidth * i) + 7]);
+  //   }
+  //   std::fprintf(stderr, "\n");
+  // }
 }
 
-RenderObject::~RenderObject() { delete _preBuffer; }
+RenderObject::~RenderObject() {}
 
 void RenderObject::recalc(glm::mat4 viewMat = glm::identity<glm::mat4>()) {
   _modelMat = glm::translate(_pos) *
@@ -326,8 +279,9 @@ void RenderObject::setRotation(glm::vec3 eulerAngles) {
   recalc();
 }
 
-void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat,
-                        ShaderProgram *overrideShader) {
+void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat,
+                        glm::mat4 lightMat, ShaderProgram *overrideShader) {
+
   if (overrideShader) {
     overrideShader->use();
     overrideShader->setUniform("modelMat", _modelMat);
@@ -352,6 +306,10 @@ void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat
       }
     }
   }
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * _vData.size(),
+                  _vData.data());
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(_vao);
-  glDrawArrays(GL_TRIANGLES, 0, _indices.size());
+  glDrawArrays(GL_TRIANGLES, 0, _vData.size() / _vDataWidth);
 }

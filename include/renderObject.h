@@ -34,20 +34,23 @@ public:
 
   // getters
   glm::vec3 pos() const { return _pos; };
+  unsigned int vao() const { return _vao; };
+  unsigned int vbo() const { return _vbo; };
+  const std::vector<float> vertexData() const { return _vData; };
 
   // draw object with OpenGL functions
-  void draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat, ShaderProgram *overrideShader = NULL);
+  void draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat,
+            ShaderProgram *overrideShader = NULL);
 
   // setters
   void setPos(glm::vec3 newPos);
   void setRotation(glm::vec3 eulerAngles);
   void setShader(ShaderProgram *prog) { _sp = prog; };
   // do this before creating geometry if using texture!
-  void setTexture(Texture *tex) {
-    _material->diffuseMap = tex;
-    _vDataWidth = _material->diffuseMap ? 8 : 6;
-  };
+  void setTexture(Texture *tex) { _material->diffuseMap = tex; };
   void setMaterial(Material *mat) { _material = mat; };
+  void setVao(unsigned int vao) { _vao = vao; };
+  void setVbo(unsigned int vbo) { _vbo = vbo; };
 
   // debug
   void debugPrint();
@@ -57,19 +60,15 @@ private:
   glm::vec3 _rot;
   glm::mat4 _modelMat; // model matrix
   glm::mat4 _normalMat;
-  std::vector<glm::vec3> _verts;
-  std::vector<unsigned int> _indices;
-  unsigned int _preBufferLen;
-  float *_preBuffer;        // interleaved positions, normals, and optional
-                            // texture coordinates for OpenGL
-  unsigned int _vDataWidth; // number of floats to define a vertex; 8 if
-                            // textures are used, 6 otherwise
-  unsigned int _vao, _vbo;  // vertex array and buffer (OpenGL)
+  std::vector<float> _vData; // interleaved positions, normals, and optional
+                             // texture coordinates for OpenGL
+  unsigned int _vDataWidth;  // number of floats to define a vertex; 8 if
+                             // textures are used, 6 otherwise
+  unsigned int _vao, _vbo;   // vertex array and buffer (OpenGL)
   ShaderProgram *_sp;
   Material *_material; // texture is now part of material (as diffuse map)
 
   void recalc(glm::mat4 viewMat);
-  void clearVertexData();
   void setupGl();
 };
 

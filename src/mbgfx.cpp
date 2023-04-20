@@ -1,4 +1,5 @@
 #include "mbgfx.h"
+#include "camera.h"
 
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -252,6 +253,12 @@ void Window::resizeFramebufferCallback(GLFWwindow *win, int w, int h) {
   glViewport(0, 0, w, h);
   if (_sc) {
     _sc->setWindowDimensions(w, h);
+    Camera *cam = _sc->activeCamera();
+    if (cam) {
+      if (cam->projection() == CameraProjType::Perspective) {
+        cam->setPerspective(cam->fov(), float(w) / float(h));
+      }
+    }
   }
 }
 
