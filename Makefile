@@ -24,13 +24,17 @@ DESTDIR=
 .PHONY: all shared static clean install
 
 all: mbgfx
-tests: $(TEST)/test1 $(TEST)/test2
+tests: $(TEST)/test1 $(TEST)/test2 $(TEST)/test3
 
 install:
 	mkdir -p $(DESTDIR)/usr/lib/mb-libs/
-	install -m 755 $(LIB)/* $(DESTDIR)/usr/lib/mb-libs/
+	install -m 755 $(LIB)/libmb* $(DESTDIR)/usr/lib/mb-libs/
 	mkdir -p $(DESTDIR)/usr/include/mb-libs/
-	install -m 755 $(INC)/* $(DESTDIR)/usr/include/mb-libs/
+	install -m 755 $(INC)/*.h $(DESTDIR)/usr/include/mb-libs/
+	mkdir -p $(DESTDIR)/usr/include/mb-libs/glad
+	install -m 755 $(INC)/glad/*.h $(DESTDIR)/usr/include/mb-libs/glad/
+	mkdir -p $(DESTDIR)/usr/include/mb-libs/KHR
+	install -m 755 $(INC)/KHR/*.h $(DESTDIR)/usr/include/mb-libs/KHR/
 
 mbgfx: $(addprefix $(LIB)/, $(GFX_TARGETS))
 mbchart: $(addprefix $(LIB)/, $(CHART_TARGETS))
@@ -39,6 +43,9 @@ $(TEST)/test1: $(BIN)/test/test1.o mbgfx
 	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
 
 $(TEST)/test2: $(BIN)/test/test2.o mbgfx
+	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+
+$(TEST)/test3: $(BIN)/test/test3.o mbgfx
 	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
 
 clean:
