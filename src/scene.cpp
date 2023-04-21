@@ -16,7 +16,7 @@ const int CIRCLE_2D_RESOLUTION = 40;
 
 GraphicsTools::Scene::Scene()
     : _windowWidth(0), _windowHeight(0), _nextCamId(0), _nextObjId(0),
-      _activeCamId(-1), _dLight(NULL), _depth(99.0f) {
+      _activeCamId(-1), _dLight(NULL), _depth(-99.0f) {
 
   glGenVertexArrays(1, &_2DVao);
   glGenBuffers(1, &_2DVbo);
@@ -64,8 +64,9 @@ Camera *GraphicsTools::Scene::activeCamera() const {
 void GraphicsTools::Scene::setWindowDimensions(int w, int h) {
   _windowWidth = w;
   _windowHeight = h;
+  // careful! z-axis is reversed in orthographic projection
   _2DProj = glm::ortho(0.0f, (float)_windowWidth, 0.0f, (float)_windowHeight,
-                       100.0f, -100.0f);
+                       -100.0f, 100.0f);
 };
 
 void GraphicsTools::Scene::setupShadows() {
@@ -173,7 +174,7 @@ void GraphicsTools::Scene::drawText2D(GraphicsTools::Font font, std::string str,
     x += (tch.charAdvance >> 6) * drawScale;
   }
   glBindVertexArray(0);
-  _depth -= 1.0f;
+  _depth += 1.0f;
 }
 
 void GraphicsTools::Scene::drawCircle2D(GraphicsTools::ColorRgba color, float x,
@@ -203,7 +204,7 @@ void GraphicsTools::Scene::drawCircle2D(GraphicsTools::ColorRgba color, float x,
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glDrawArrays(GL_TRIANGLE_FAN, 0, verts_v.size() / 4);
-  _depth -= 1.0f;
+  _depth += 1.0f;
 }
 
 void GraphicsTools::Scene::drawRectangle2D(GraphicsTools::ColorRgba color,
@@ -225,7 +226,7 @@ void GraphicsTools::Scene::drawRectangle2D(GraphicsTools::ColorRgba color,
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
-  _depth -= 1.0f;
+  _depth += 1.0f;
 }
 
 void GraphicsTools::Scene::drawLine2D(GraphicsTools::ColorRgba color,
@@ -246,5 +247,5 @@ void GraphicsTools::Scene::drawLine2D(GraphicsTools::ColorRgba color,
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glLineWidth(thickness);
   glDrawArrays(GL_LINES, 0, verts_v.size() / 4);
-  _depth -= 1.0f;
+  _depth += 1.0f;
 }

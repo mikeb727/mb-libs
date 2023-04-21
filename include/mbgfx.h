@@ -162,6 +162,17 @@ public:
   int width() const { return _width; };
   int height() const { return _height; };
   GLFWwindow *glfwWindow() const { return _win; };
+  void *userPointer(std::string id) const { return _userPointers.at(id); };
+
+  // setters
+  void setUserPointer(std::string id, void *ptr) {
+    if (ptr) {
+      _userPointers.emplace(id, ptr);
+    }
+    else {
+      std::cerr << "warning: provided user pointer for key \"" << id << "\" is null!\n";
+    }
+  };
 
   // clear, then update to show graphics
   // keep clear, but make update responsibility of attached scene
@@ -199,6 +210,7 @@ private:
   int _width, _height;
   GLFWwindow *_win;
   Scene *_sc;
+  std::map<std::string, void *> _userPointers; // ??
 
   static void resizeFramebufferCallback(GLFWwindow *win, int w, int h);
 };
