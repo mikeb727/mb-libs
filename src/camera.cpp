@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <iostream>
 
+namespace GraphicsTools {
+
 Camera::Camera()
     : _pos(glm::zero<glm::vec3>()), _fov(45.0f), _aspectRatio(1.0f), _yaw(0.0f),
       _pitch(0.0f), _projType(CameraProjType::Undefined), _orthoWidth(0),
@@ -65,3 +67,5 @@ void Camera::debugPrint(std::ostream &out) const {
   out << "local z " << _up.x << " " << _up.y << " " << _up.z << "\n";
   out << "yaw " << _yaw << " pitch " << _pitch << "\n";
 }
+
+} // namespace GraphicsTools

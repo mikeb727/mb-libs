@@ -8,13 +8,16 @@
 
 #include <iostream>
 
+namespace GraphicsTools {
+
 enum CameraProjType { Undefined, Perspective, Orthographic };
 
 class Camera {
 public:
   // ctor
   Camera();
-
+  // using default copy ctor
+  
   // getters
   glm::vec3 pos() const { return _pos; };
   // local axes
@@ -50,5 +53,7 @@ private:
   // recompute transformation matrices
   void recalc();
 };
+
+} // namespace GraphicsTools
 
 #endif
