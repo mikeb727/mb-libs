@@ -11,7 +11,12 @@
 class ShaderProgram {
 
 public:
+  // ctor
   ShaderProgram(const char *vsPath, const char *fsPath);
+
+  // getters
+  unsigned int id() const { return _glId; };
+
   void use();
   // overload this for all types
   void setUniform(const std::string &varName, int val);
@@ -20,10 +25,9 @@ public:
   void setUniform(const std::string &varName, glm::mat4 val);
   void setUniform(const std::string &varName, glm::vec3 val);
   void setUniform(const std::string &varName, glm::vec4 val);
-  unsigned int id() const { return spId; };
 
 private:
-  unsigned int spId;
+  unsigned int _glId;
 };
 
 #endif

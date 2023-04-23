@@ -1,16 +1,19 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
+#include "colors.h"
 #include "shader.h"
 
 #include <glm/glm.hpp>
 #include <iostream>
 
+namespace GraphicsTools {
+
 struct PointLight {
   glm::vec3 _pos;
-  glm::vec3 _ambientColor;
-  glm::vec3 _diffuseColor;
-  glm::vec3 _specularColor;
+  ColorRgba _ambientColor;
+  ColorRgba _diffuseColor;
+  ColorRgba _specularColor;
 
   float _attenuationD0;
   float _attenuationD1;
@@ -30,10 +33,12 @@ struct PointLight {
 
 struct DirectionalLight {
   glm::vec3 _dir;
-  glm::vec3 _ambientColor;
-  glm::vec3 _diffuseColor;
-  glm::vec3 _specularColor;
+  ColorRgba _ambientColor;
+  ColorRgba _diffuseColor;
+  ColorRgba _specularColor;
   ShaderProgram *sp;
 };
+
+} // namespace GraphicsTools
 
 #endif

@@ -8,54 +8,32 @@
 #include "camera.h"
 #include "errors.h"
 #include "light.h"
-#include "renderObject.h"
 #include "shader.h"
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "glad/gl.h"
+#include "texture.h"
 #include <GLFW/glfw3.h>
 
 #include <freetype/freetype.h>
 
 namespace GraphicsTools {
 
-// library initialization
+// library setup/teardown
 int InitGraphics();
 int CloseGraphics();
 
 enum TextAlignModeH { Left, Center, Right };
 
-// library-independent colors
-// adapted from https://stackoverflow.com/questions/3018313/
-struct ColorRgba {
-  double r; // a fraction between 0 and 1
-  double g; // a fraction between 0 and 1
-  double b; // a fraction between 0 and 1
-  double a;
+struct Material {
+  ColorRgba diffuse;
+  Texture *diffuseMap;
+  ColorRgba specular;
+  float shininess;
 };
-struct ColorHsv {
-  double h; // angle in degrees
-  double s; // a fraction between 0 and 1
-  double v; // a fraction between 0 and 1
-};
-
-namespace Colors {
-const ColorRgba Black = {0, 0, 0, 255};
-const ColorRgba Grey25 = {64, 64, 64, 255};
-const ColorRgba Grey = {192, 192, 192, 255};
-const ColorRgba White = {255, 255, 255, 255};
-const ColorRgba Red = {255, 0, 0, 255};
-const ColorRgba Blue = {0, 0, 255, 255};
-const ColorRgba Green = {0, 255, 0, 255};
-const ColorRgba Yellow = {255, 255, 0, 255};
-} // namespace Colors
-
-// color operations
-ColorRgba blend(ColorRgba c1, double w1, ColorRgba c2, double w2);
-ColorRgba randomColor();
-ColorRgba hsv2rgb(ColorHsv in);
 
 // data extracted from font using freetype
 struct TextGlyph {
@@ -79,6 +57,59 @@ public:
   TextGlyph glyph(char ch) const { return _glyphs.at(ch); };
   bool isReady() const { return _ready; };
   int size() const { return _size; };
+};
+
+class RenderObject {
+public:
+  // ctor, dtor
+  RenderObject();
+  ~RenderObject();
+
+  // getters
+  glm::vec3 pos() const { return _pos; };
+  unsigned int vao() const { return _vao; };
+  unsigned int vbo() const { return _vbo; };
+  const std::vector<float> vertexData() const { return _vData; };
+
+  // setters
+  void setPos(glm::vec3 newPos);
+  void setRotation(glm::vec3 eulerAngles);
+  void setShader(ShaderProgram *prog) { _sp = prog; };
+  // do this before creating geometry if using texture!
+  void setTexture(Texture *tex) { _material->diffuseMap = tex; };
+  void setMaterial(Material *mat) { _material = mat; };
+  void setVao(unsigned int vao) { _vao = vao; };
+  void setVbo(unsigned int vbo) { _vbo = vbo; };
+
+  // generate geometry
+  void genSphere(float radius, int numLatSegments, int numLonSegments);
+  void genCube(float sideLength);
+  void genPlane(float width, float depth);
+  void genTorus(float majorRadius, float minorRadius, int numMinorSegments,
+                int numMajorSegments);
+
+  // draw object with OpenGL functions
+  void draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat,
+            ShaderProgram *overrideShader = NULL);
+
+  // debug
+  void debugPrint();
+
+private:
+  glm::vec3 _pos;
+  glm::vec3 _rot;
+  glm::mat4 _modelMat; // model matrix
+  glm::mat4 _normalMat;
+  std::vector<float> _vData; // interleaved positions, normals, and optional
+                             // texture coordinates for OpenGL
+  unsigned int _vDataWidth;  // number of floats to define a vertex; 8 if
+                             // textures are used, 6 otherwise
+  unsigned int _vao, _vbo;   // vertex array and buffer (OpenGL)
+  ShaderProgram *_sp;
+  Material *_material; // texture is now part of material (as diffuse map)
+
+  void recalc(glm::mat4 viewMat);
+  void setupGl();
 };
 
 class Scene {
@@ -107,9 +138,10 @@ public:
   // setters
   void setWindowDimensions(int w, int h);
   void resetDepth() { _depth = -99.0f; };
+  void setShadows(bool s) { _useShadows = s; };
 
   void setupShadows();
-  void renderShadows();
+  void renderShadows() const;
   void render() const;
 
   // 2D drawing
@@ -136,6 +168,7 @@ private:
   DirectionalLight *_dLight;
 
   // for generating shadowmaps
+  bool _useShadows;
   unsigned int _shadowFbo, _depthMap;
   glm::mat4 _lightView, _lightProj;
   ShaderProgram *_depthShader;
@@ -163,16 +196,12 @@ public:
   int height() const { return _height; };
   GLFWwindow *glfwWindow() const { return _win; };
   void *userPointer(std::string id) const { return _userPointers.at(id); };
+  bool ready() const { return _ready; };
+  ColorRgba clearColor() const { return _clearColor; };
 
   // setters
-  void setUserPointer(std::string id, void *ptr) {
-    if (ptr) {
-      _userPointers.emplace(id, ptr);
-    }
-    else {
-      std::cerr << "warning: provided user pointer for key \"" << id << "\" is null!\n";
-    }
-  };
+  void setUserPointer(std::string id, void *ptr);
+  void setClearColor(ColorRgba c) { _clearColor = c; };
 
   // clear, then update to show graphics
   // keep clear, but make update responsibility of attached scene
@@ -211,6 +240,8 @@ private:
   GLFWwindow *_win;
   Scene *_sc;
   std::map<std::string, void *> _userPointers; // ??
+  bool _ready;
+  ColorRgba _clearColor;
 
   static void resizeFramebufferCallback(GLFWwindow *win, int w, int h);
 };

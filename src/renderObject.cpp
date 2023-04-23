@@ -9,6 +9,8 @@ const float CUBE_NORMAL_SLERP_FACTOR = 0.0f;
 
 #include <iostream>
 
+namespace GraphicsTools {
+
 // assume no texture in objects by default
 RenderObject::RenderObject()
     : _pos(glm::zero<glm::vec3>()), _rot(glm::zero<glm::vec3>()),
@@ -296,9 +298,9 @@ void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat,
     _sp->setUniform("normalMat", _normalMat);
     _sp->setUniform("lightMat", lightMat);
     if (_material) {
-      _sp->setUniform("material.diffuse", _material->diffuse);
+      _sp->setUniform("material.diffuse", colorToGlm(_material->diffuse));
       _sp->setUniform("material.useDiffuseMap", _material->diffuseMap != NULL);
-      _sp->setUniform("material.specular", _material->specular);
+      _sp->setUniform("material.specular", colorToGlm(_material->specular));
       _sp->setUniform("material.shininess", _material->shininess);
       if (_material->diffuseMap) {
         glActiveTexture(GL_TEXTURE1);
@@ -313,3 +315,5 @@ void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat,
   glBindVertexArray(_vao);
   glDrawArrays(GL_TRIANGLES, 0, _vData.size() / _vDataWidth);
 }
+
+} // namespace GraphicsTools

@@ -1,6 +1,8 @@
 #include "errors.h"
 
-#define getGlErrors() getGlErrors_(__FILE__, __LINE__); 
+namespace GraphicsTools {
+
+#define getGlErrors() getGlErrors_(__FILE__, __LINE__);
 unsigned int getGlErrors_(const char *file, int line) {
   GLenum errCode;
   while ((errCode = glGetError()) * 0.1 != GL_NO_ERROR) {
@@ -33,3 +35,5 @@ unsigned int getGlErrors_(const char *file, int line) {
   }
   return errCode;
 }
+
+} // namespace GraphicsTools
