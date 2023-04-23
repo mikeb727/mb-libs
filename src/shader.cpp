@@ -2,7 +2,6 @@
 #include "errors.h"
 
 #include <fstream>
-#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
 
@@ -49,39 +48,39 @@ ShaderProgram::ShaderProgram(const char *vsPath, const char *fsPath) {
     std::fprintf(stderr, "could not compile fragment shader \"%s\":\n%s\n", fsPath, compileLog);
   }
 
-  spId = glCreateProgram();
-  glAttachShader(spId, vsId);
-  glAttachShader(spId, fsId);
-  glLinkProgram(spId);
+  _glId = glCreateProgram();
+  glAttachShader(_glId, vsId);
+  glAttachShader(_glId, fsId);
+  glLinkProgram(_glId);
 
   glDeleteShader(vsId);
   glDeleteShader(fsId);
 }
 
-void ShaderProgram::use() { glUseProgram(spId); }
+void ShaderProgram::use() { glUseProgram(_glId); }
 
 void ShaderProgram::setUniform(const std::string &varName, int val) {
-  glUniform1i(glGetUniformLocation(spId, varName.c_str()), val);
+  glUniform1i(glGetUniformLocation(_glId, varName.c_str()), val);
 }
 
 void ShaderProgram::setUniform(const std::string &varName, float val) {
-  glUniform1f(glGetUniformLocation(spId, varName.c_str()), val);
+  glUniform1f(glGetUniformLocation(_glId, varName.c_str()), val);
 }
 
 void ShaderProgram::setUniform(const std::string &varName, float val1,
                                float val2) {
-  glUniform2f(glGetUniformLocation(spId, varName.c_str()), val1, val2);
+  glUniform2f(glGetUniformLocation(_glId, varName.c_str()), val1, val2);
 }
 
 void ShaderProgram::setUniform(const std::string &varName, glm::mat4 val) {
-  glUniformMatrix4fv(glGetUniformLocation(spId, varName.c_str()), 1, GL_FALSE,
+  glUniformMatrix4fv(glGetUniformLocation(_glId, varName.c_str()), 1, GL_FALSE,
                      glm::value_ptr(val));
 }
 
 void ShaderProgram::setUniform(const std::string &varName, glm::vec3 val) {
-  glUniform3fv(glGetUniformLocation(spId, varName.c_str()), 1, glm::value_ptr(val));
+  glUniform3fv(glGetUniformLocation(_glId, varName.c_str()), 1, glm::value_ptr(val));
 }
 
 void ShaderProgram::setUniform(const std::string &varName, glm::vec4 val) {
-  glUniform4fv(glGetUniformLocation(spId, varName.c_str()), 1, glm::value_ptr(val));
+  glUniform4fv(glGetUniformLocation(_glId, varName.c_str()), 1, glm::value_ptr(val));
 }
