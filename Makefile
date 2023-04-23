@@ -1,5 +1,5 @@
 GFX_TARGETS=$(addprefix libmbgfx, .so)
-GFX_OBJ=$(addsuffix .o, camera gl errors mbgfx renderObject scene shader texture)
+GFX_OBJ=$(addsuffix .o, camera colors gl errors mbgfx renderObject scene shader texture window)
 GFX_OBJS=$(addprefix $(BIN)/shared/, $(GFX_OBJ))
 
 CHART_TARGETS=$(addprefix libmbchart, .so .a)
@@ -24,7 +24,7 @@ DESTDIR=
 .PHONY: all shared static clean install
 
 all: mbgfx
-tests: $(TEST)/test1 $(TEST)/test2 $(TEST)/test3
+tests: $(TEST)/test1 $(TEST)/test2 $(TEST)/test3 $(TEST)/test4
 
 install:
 	mkdir -p $(DESTDIR)/usr/lib/mb-libs/
@@ -46,6 +46,9 @@ $(TEST)/test2: $(BIN)/test/test2.o mbgfx
 	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
 
 $(TEST)/test3: $(BIN)/test/test3.o mbgfx
+	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+
+$(TEST)/test4: $(BIN)/test/test4.o mbgfx
 	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
 
 clean:
