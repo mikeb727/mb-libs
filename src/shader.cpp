@@ -59,6 +59,10 @@ ShaderProgram::ShaderProgram(const char *vsPath, const char *fsPath) {
 
 void ShaderProgram::use() { glUseProgram(_glId); }
 
+void ShaderProgram::setUniform(const std::string &varName, bool val) {
+  glUniform1i(glGetUniformLocation(_glId, varName.c_str()), val);
+}
+
 void ShaderProgram::setUniform(const std::string &varName, int val) {
   glUniform1i(glGetUniformLocation(_glId, varName.c_str()), val);
 }

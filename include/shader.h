@@ -25,6 +25,7 @@ public:
   void setUniform(const std::string &varName, glm::mat4 val);
   void setUniform(const std::string &varName, glm::vec3 val);
   void setUniform(const std::string &varName, glm::vec4 val);
+  void setUniform(const std::string &varName, bool val);
 
 private:
   unsigned int _glId;
