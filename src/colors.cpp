@@ -90,8 +90,7 @@ ColorRgba randomColor() {
   ColorRgba intermediate = GraphicsTools::hsv2rgb(
       GraphicsTools::ColorHsva{hue, std::clamp<float>(sat, 0.0, 1.0),
                                std::clamp<float>(val, 0.0, 1.0), 1.0});
-  return ColorRgba{(intermediate.r * 255), (intermediate.g * 255),
-                   (intermediate.b * 255), 255};
+  return ColorRgba{(intermediate.r), (intermediate.g), (intermediate.b), 1.0};
 }
 
 glm::vec4 colorToGlm(ColorRgba in) { return glm::vec4(in.r, in.g, in.b, in.a); }
@@ -99,6 +98,13 @@ glm::vec4 colorToGlm(ColorRgba in) { return glm::vec4(in.r, in.g, in.b, in.a); }
 glm::vec4 colorToGlm(ColorHsva in) {
   ColorRgba rgba = hsv2rgb(in);
   return glm::vec4(rgba.r, rgba.g, rgba.b, rgba.a);
+}
+
+ColorRgba operator*(ColorRgba c, float m) {
+  return ColorRgba({c.r * m, c.g * m, c.b * m, c.a * m});
+}
+ColorRgba operator*(float m, ColorRgba c) {
+  return ColorRgba({c.r * m, c.g * m, c.b * m, c.a * m});
 }
 
 } // namespace GraphicsTools

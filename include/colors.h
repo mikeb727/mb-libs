@@ -38,6 +38,8 @@ ColorRgba hsv2rgb(ColorHsva in);
 // for use in shaders
 glm::vec4 colorToGlm(ColorRgba in);
 glm::vec4 colorToGlm(ColorHsva in);
+ColorRgba operator*(ColorRgba c, float m);
+ColorRgba operator*(float m, ColorRgba c);
 
 } // namespace GraphicsTools
 
