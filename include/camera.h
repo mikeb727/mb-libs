@@ -1,4 +1,4 @@
-// a camera for viewing 3D space.
+// a camera for viewing 2D or 3D space.
 #ifndef CAMERA_H
 #define CAMERA_H
 
@@ -50,7 +50,7 @@ private:
   CameraProjType _projType;
   float _fov, _aspectRatio;
   float _yaw, _pitch;
-  // recompute transformation matrices
+  // recompute transformation matrices after setting position
   void recalc();
 };
 

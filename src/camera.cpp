@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include <glm/gtx/string_cast.hpp> // debug; print matrices
+
 namespace GraphicsTools {
 
 Camera::Camera()
@@ -60,12 +62,28 @@ void Camera::recalc() {
 void Camera::debugPrint(std::ostream &out) const {
   out << std::setiosflags(std::ios::fixed) << std::setprecision(2);
   out << "camera\n";
+  switch (_projType) {
+  case Undefined:
+    out << "undefined projection\n";
+    break;
+  case Perspective:
+    out << "perspective projection; fov " << _fov << ", aspect ratio "
+        << _aspectRatio << "\n";
+    break;
+  case Orthographic:
+    out << "orthographic projection; width " << _orthoWidth << ", height "
+        << _orthoHeight << "\n";
+    break;
+  }
   out << "world pos " << _pos.x << " " << _pos.y << " " << _pos.z << "\n";
-  out << "local x " << _forward.x << " " << _forward.y << " " << _forward.z
+  out << "local x " << _right.x << " " << _right.y << " " << _right.z << "\n";
+  out << "local y " << _forward.x << " " << _forward.y << " " << _forward.z
       << "\n";
-  out << "local y " << _right.x << " " << _right.y << " " << _right.z << "\n";
   out << "local z " << _up.x << " " << _up.y << " " << _up.z << "\n";
   out << "yaw " << _yaw << " pitch " << _pitch << "\n";
+  out << "view matrix :\n" << glm::to_string(_view) << "\n";
+  out << "projection matrix :\n" << glm::to_string(_proj) << "\n";
+
 }
 
 } // namespace GraphicsTools
