@@ -130,9 +130,11 @@ void Scene::render() const {
     _dLight->sp->setUniform("dirLight.specular",
                             colorToGlm(_dLight->_specularColor));
     _dLight->sp->setUniform("viewPos", activeCamera()->pos());
-    glActiveTexture(GL_TEXTURE1); // unit 0 is reserved for object textures
-    glBindTexture(GL_TEXTURE_2D, _depthMap);
-    _dLight->sp->setUniform("shadowMap", 1);
+    if (_useShadows) {
+      glActiveTexture(GL_TEXTURE1); // unit 0 is reserved for object textures
+      glBindTexture(GL_TEXTURE_2D, _depthMap);
+      _dLight->sp->setUniform("shadowMap", 1);
+    }
     for (auto &obj : _objs) {
       obj.second->draw(activeCamera()->viewMatrix(),
                        activeCamera()->projMatrix(), _lightProj * _lightView);

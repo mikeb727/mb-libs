@@ -1,4 +1,5 @@
 #include "renderObject.h"
+#include "colors.h"
 #include "errors.h"
 #include "glad/gl.h"
 #include "shader.h"
@@ -14,8 +15,8 @@ namespace GraphicsTools {
 // assume no texture in objects by default
 RenderObject::RenderObject()
     : _pos(glm::zero<glm::vec3>()), _rot(glm::zero<glm::vec3>()),
-      _modelMat(glm::identity<glm::mat4>()), _sp(NULL), _material(NULL),
-      _vDataWidth(8) {}
+      _modelMat(glm::identity<glm::mat4>()), _sp(NULL),
+      _material({Colors::White, NULL, Colors::White, 1}), _vDataWidth(8) {}
 
 void RenderObject::genCube(float sideLength) {
 
@@ -297,16 +298,14 @@ void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat,
     _sp->setUniform("projMat", projMat);
     _sp->setUniform("normalMat", _normalMat);
     _sp->setUniform("lightMat", lightMat);
-    if (_material) {
-      _sp->setUniform("material.diffuse", colorToGlm(_material->diffuse));
-      _sp->setUniform("material.useDiffuseMap", _material->diffuseMap != NULL);
-      _sp->setUniform("material.specular", colorToGlm(_material->specular));
-      _sp->setUniform("material.shininess", _material->shininess);
-      if (_material->diffuseMap) {
+      _sp->setUniform("material.diffuse", colorToGlm(_material.diffuse));
+      _sp->setUniform("material.useDiffuseMap", _material.diffuseMap != NULL);
+      _sp->setUniform("material.specular", colorToGlm(_material.specular));
+      _sp->setUniform("material.shininess", _material.shininess);
+      if (_material.diffuseMap) {
         glActiveTexture(GL_TEXTURE1);
-        _material->diffuseMap->use();
+        _material.diffuseMap->use();
       }
-    }
   }
   glBindBuffer(GL_ARRAY_BUFFER, _vbo);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * _vData.size(),

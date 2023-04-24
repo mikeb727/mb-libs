@@ -76,8 +76,8 @@ public:
   void setRotation(glm::vec3 eulerAngles);
   void setShader(ShaderProgram *prog) { _sp = prog; };
   // do this before creating geometry if using texture!
-  void setTexture(Texture *tex) { _material->diffuseMap = tex; };
-  void setMaterial(Material *mat) { _material = mat; };
+  void setTexture(Texture *tex) { _material.diffuseMap = tex; };
+  void setMaterial(Material mat) { _material = mat; };
   void setVao(unsigned int vao) { _vao = vao; };
   void setVbo(unsigned int vbo) { _vbo = vbo; };
 
@@ -106,7 +106,7 @@ private:
                              // textures are used, 6 otherwise
   unsigned int _vao, _vbo;   // vertex array and buffer (OpenGL)
   ShaderProgram *_sp;
-  Material *_material; // texture is now part of material (as diffuse map)
+  Material _material; // texture is now part of material (as diffuse map)
 
   void recalc(glm::mat4 viewMat);
   void setupGl();
@@ -218,7 +218,7 @@ public:
   void drawCircleGradient(GraphicsTools::ColorRgba outer,
                           GraphicsTools::ColorRgba inner, int x, int y, int r);
   void drawText(std::string str, GraphicsTools::Font *font,
-                GraphicsTools::ColorRgba, int x, int y,
+                GraphicsTools::ColorRgba, int x, int y, int width,
                 GraphicsTools::TextAlignModeH align =
                     GraphicsTools::TextAlignModeH::Left);
   void drawLine(GraphicsTools::ColorRgba color, int thickness, int x1, int y1,
