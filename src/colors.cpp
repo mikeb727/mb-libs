@@ -100,11 +100,12 @@ glm::vec4 colorToGlm(ColorHsva in) {
   return glm::vec4(rgba.r, rgba.g, rgba.b, rgba.a);
 }
 
+// don't multiply alpha! avoid unnecessary transparency
 ColorRgba operator*(ColorRgba c, float m) {
-  return ColorRgba({c.r * m, c.g * m, c.b * m, c.a * m});
+  return ColorRgba({c.r * m, c.g * m, c.b * m, c.a});
 }
 ColorRgba operator*(float m, ColorRgba c) {
-  return ColorRgba({c.r * m, c.g * m, c.b * m, c.a * m});
+  return ColorRgba({c.r * m, c.g * m, c.b * m, c.a});
 }
 
 } // namespace GraphicsTools
