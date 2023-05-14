@@ -26,6 +26,10 @@ int CloseGraphics() {
   return 0;
 }
 
+float remap(float x, float a1, float a2, float b1, float b2){
+  return (x - a1) * ((b2 - b1) / (a2 - a1)) + b1;
+}
+
 Font::Font(std::string file, int fontSize) : _size(fontSize), _ready(false) {
   _filename = file;
   FT_Library ft;

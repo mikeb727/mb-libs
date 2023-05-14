@@ -27,6 +27,9 @@ namespace GraphicsTools {
 int InitGraphics();
 int CloseGraphics();
 
+// utility
+float remap(float x, float a1, float a2, float b1, float b2);
+
 enum TextAlignModeH { Left, Center, Right };
 
 struct Material {
