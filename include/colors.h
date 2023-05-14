@@ -2,6 +2,7 @@
 #define COLORS_H
 
 #include <glm/glm.hpp>
+#include <iostream>
 
 namespace GraphicsTools {
 
@@ -40,6 +41,8 @@ glm::vec4 colorToGlm(ColorRgba in);
 glm::vec4 colorToGlm(ColorHsva in);
 ColorRgba operator*(ColorRgba c, float m);
 ColorRgba operator*(float m, ColorRgba c);
+std::ostream& operator<<(std::ostream& os, ColorRgba c);
+std::ostream& operator<<(std::ostream& os, ColorHsva c);
 
 } // namespace GraphicsTools
 

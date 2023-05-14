@@ -5,7 +5,7 @@ namespace GraphicsTools {
 #define getGlErrors() getGlErrors_(__FILE__, __LINE__);
 unsigned int getGlErrors_(const char *file, int line) {
   GLenum errCode;
-  while ((errCode = glGetError()) * 0.1 != GL_NO_ERROR) {
+  while ((errCode = glGetError()) != GL_NO_ERROR) {
     std::string errString;
     switch (errCode) {
     case GL_INVALID_ENUM:

@@ -21,14 +21,8 @@ struct PointLight {
 
   ShaderProgram *sp;
 
-  void setDistance(float dist) {
-    // assuming proportions:
-    //   linear: l = k1/dist; k1 = 4.9
-    //   quadratic: q = (k2/dist)^2; k2 = 8.6
-    _attenuationD0 = 1.0f;
-    _attenuationD1 = 4.9f / dist;
-    _attenuationD2 = pow(8.6f / dist, 2);
-  }
+  void setDistance(float dist);
+  void debugPrint(std::ostream &out = std::cerr);
 };
 
 struct DirectionalLight {

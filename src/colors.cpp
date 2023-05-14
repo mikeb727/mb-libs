@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <random>
 
@@ -81,12 +82,12 @@ ColorRgba randomColor() {
   generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
   std::uniform_real_distribution<float> hueDist(0, 360);
   std::normal_distribution<float> satDist(0.8, 0.2);
-  std::normal_distribution<float> valDist(0.5, 0.2);
+  std::normal_distribution<float> valDist(0.65, 0.1);
   float hue = hueDist(generator);
   float sat = satDist(generator);
   float val = valDist(generator);
-  std::cerr << "[imageTools] hue " << hue << " sat " << sat << " val " << val
-            << "\n";
+  std::cerr << "[mbgfx] random color hue " << hue << " sat " << sat << " val "
+            << val << "\n";
   ColorRgba intermediate = GraphicsTools::hsv2rgb(
       GraphicsTools::ColorHsva{hue, std::clamp<float>(sat, 0.0, 1.0),
                                std::clamp<float>(val, 0.0, 1.0), 1.0});
@@ -106,6 +107,18 @@ ColorRgba operator*(ColorRgba c, float m) {
 }
 ColorRgba operator*(float m, ColorRgba c) {
   return ColorRgba({c.r * m, c.g * m, c.b * m, c.a});
+}
+
+std::ostream &operator<<(std::ostream &os, ColorRgba c) {
+  os << std::setiosflags(std::ios::fixed) << std::setprecision(2);
+  os << "r " << c.r << " g " << c.g << " b " << c.b << " a " << c.a;
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, ColorHsva c) {
+  os << std::setiosflags(std::ios::fixed) << std::setprecision(2);
+  os << "r " << c.h << " g " << c.s << " b " << c.v << " a " << c.a;
+  return os;
 }
 
 } // namespace GraphicsTools

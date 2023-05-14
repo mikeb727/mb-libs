@@ -55,7 +55,9 @@ Scene::Scene()
 }
 
 Scene::~Scene() {
-  delete _depthShader;
+  if (_depthShader) {
+    delete _depthShader;
+  }
   delete _2DShader;
 }
 

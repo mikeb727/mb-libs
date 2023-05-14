@@ -56,7 +56,7 @@ clean:
 
 $(LIB)/$(LIB)mbgfx.so: $(GFX_OBJS)
 	mkdir -p $(LIB)
-	$(CPP) -shared $(GFX_OBJS) -o $@
+	$(CPP) $(DFLAGS) -shared $(GFX_OBJS) -o $@
 
 $(LIB)/$(LIB)%.a: $(BIN)/static/%.o
 	mkdir -p $(LIB)
