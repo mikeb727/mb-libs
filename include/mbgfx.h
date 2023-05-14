@@ -6,6 +6,7 @@
 #define IMAGES_H
 
 #include "camera.h"
+#include "colors.h"
 #include "errors.h"
 #include "light.h"
 #include "shader.h"
@@ -153,6 +154,8 @@ public:
                        float x2, float y2);
   void drawLine2D(GraphicsTools::ColorRgba color, float thickness, float x1,
                   float y1, float x2, float y2);
+  void drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness);
+
 
 private:
   // give each object a unique ID. possibly remove this and have external user
@@ -212,6 +215,7 @@ public:
 
   // drawing functions
   // make scene responsible for these
+  void drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness);
   void drawRectangle(GraphicsTools::ColorRgba color, int x1, int y1, int x2,
                      int y2);
   void drawCircle(GraphicsTools::ColorRgba, float x, float y, float r);

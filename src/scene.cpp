@@ -1,6 +1,8 @@
 #include "glad/gl.h"
 #include "mbgfx.h"
 #include "shader.h"
+
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -254,6 +256,65 @@ void Scene::drawLine2D(ColorRgba color, float thickness, float x1, float y1,
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glLineWidth(thickness);
   glDrawArrays(GL_LINES, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+void Scene::drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1,
+                        float x2, float y2, float thickness) {
+  using std::sin, std::cos, std::atan2;
+  float direction = atan2(y2 - y1, x2 - x1);
+  float perp = direction + (M_PI / 2.0);
+  float headHeight = sqrt(3) * thickness;
+  std::vector<float> verts_v = {
+      x1 + (0.5f * thickness * cos(perp)),
+      y1 + (0.5f * thickness * sin(perp)),
+      0,
+      0,
+      x1 - (0.5f * thickness * cos(perp)),
+      y1 - (0.5f * thickness * sin(perp)),
+      0,
+      0,
+      x2 - (headHeight * cos(direction)) - (0.5f * thickness * cos(perp)),
+      y2 - (headHeight * sin(direction)) - (0.5f * thickness * sin(perp)),
+      0,
+      0,
+      x2 - (headHeight * cos(direction)) - (0.5f * thickness * cos(perp)),
+      y2 - (headHeight * sin(direction)) - (0.5f * thickness * sin(perp)),
+      0,
+      0,
+      x2 - (headHeight * cos(direction)) + (0.5f * thickness * cos(perp)),
+      y2 - (headHeight * sin(direction)) + (0.5f * thickness * sin(perp)),
+      0,
+      0,
+      x1 + (0.5f * thickness * cos(perp)),
+      y1 + (0.5f * thickness * sin(perp)),
+      0,
+      0,
+      x2 - (headHeight * cos(direction)) - (thickness * cos(perp)),
+      y2 - (headHeight * sin(direction)) - (thickness * sin(perp)),
+      0,
+      0,
+      x2,
+      y2,
+      0,
+      0,
+      x2 - (headHeight * cos(direction)) + (thickness * cos(perp)),
+      y2 - (headHeight * sin(direction)) + (thickness * sin(perp)),
+      0,
+      0,
+  };
+  float *verts = verts_v.data();
+  _2DShader->use();
+  _2DShader->setUniform("transform", _2DProj);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  _2DShader->setUniform("color", shaderColor);
+  _2DShader->setUniform("useTex", 0);
+  _2DShader->setUniform("drawDepth", _depth);
+  glBindVertexArray(_2DVao);
+  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
   _depth += 1.0f;
 }
 

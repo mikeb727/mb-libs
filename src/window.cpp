@@ -119,6 +119,10 @@ void Window::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,
   _sc->drawLine2D(color, thickness, x1, y1, x2, y2);
 }
 
+void Window::drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness){
+  _sc->drawArrow2D(color, x1, y1, x2, y2, thickness);
+}
+
 void Window::resizeFramebufferCallback(GLFWwindow *win, int w, int h) {
   Window *gfxWin = (Window *)glfwGetWindowUserPointer(win);
   Scene *_sc = gfxWin->activeScene();
