@@ -53,13 +53,12 @@ Scene::Scene()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
+  _depthShader = NULL;
   _2DShader = new ShaderProgram("assets/2d_vs.glsl", "assets/2d_fs.glsl");
 }
 
 Scene::~Scene() {
-  if (_depthShader) {
-    delete _depthShader;
-  }
+  delete _depthShader;
   delete _2DShader;
 }
 
