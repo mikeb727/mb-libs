@@ -107,7 +107,7 @@ void Window::drawText(std::string text, GraphicsTools::Font *font,
     std::cerr << "window is not initialized!\n";
     return;
   }
-  _sc->drawText2D(*font, text, color, x, y, width, 1);
+  _sc->drawText2D(*font, text, color, x, y, width, al, 1);
 }
 
 void Window::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,
@@ -119,6 +119,14 @@ void Window::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,
   _sc->drawLine2D(color, thickness, x1, y1, x2, y2);
 }
 
+void Window::drawMultiLine(GraphicsTools::ColorRgba color, int thickness, int numPoints, float *points) {
+  if (!_ready) {
+    std::cerr << "window is not initialized!\n";
+    return;
+  }
+  _sc->drawMultiLine2D(color, thickness, numPoints, points);
+}
+
 void Window::drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness){
   _sc->drawArrow2D(color, x1, y1, x2, y2, thickness);
 }
@@ -127,6 +135,8 @@ void Window::resizeFramebufferCallback(GLFWwindow *win, int w, int h) {
   Window *gfxWin = (Window *)glfwGetWindowUserPointer(win);
   Scene *_sc = gfxWin->activeScene();
   glViewport(0, 0, w, h);
+  gfxWin->_width = w;
+  gfxWin->_height = h;
   if (_sc) {
     _sc->setWindowDimensions(w, h);
     Camera *cam = _sc->activeCamera();

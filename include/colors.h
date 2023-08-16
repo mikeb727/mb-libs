@@ -8,17 +8,18 @@ namespace GraphicsTools {
 
 // library-independent colors
 // adapted from https://stackoverflow.com/questions/3018313/
+// all components in [0, 1] unless otherwise specified
 struct ColorRgba {
-  float r; // a fraction between 0 and 1
-  float g; // a fraction between 0 and 1
-  float b; // a fraction between 0 and 1
-  float a; // a fraction between 0 and 1
+  float r;
+  float g;
+  float b;
+  float a;
 };
 struct ColorHsva {
   float h; // angle in degrees
-  float s; // a fraction between 0 and 1
-  float v; // a fraction between 0 and 1
-  float a; // a fraction between 0 and 1
+  float s;
+  float v;
+  float a;
 };
 
 namespace Colors {
@@ -34,15 +35,17 @@ const ColorRgba Yellow = {1, 1, 0, 1};
 
 // color operations
 ColorRgba blend(ColorRgba c1, float w1, ColorRgba c2, float w2);
-ColorRgba randomColor();
 ColorRgba hsv2rgb(ColorHsva in);
+ColorRgba randomColor();
+ColorRgba operator*(ColorRgba c, float m);
+ColorRgba operator*(float m, ColorRgba c);
+
 // for use in shaders
 glm::vec4 colorToGlm(ColorRgba in);
 glm::vec4 colorToGlm(ColorHsva in);
-ColorRgba operator*(ColorRgba c, float m);
-ColorRgba operator*(float m, ColorRgba c);
-std::ostream& operator<<(std::ostream& os, ColorRgba c);
-std::ostream& operator<<(std::ostream& os, ColorHsva c);
+
+std::ostream &operator<<(std::ostream &os, ColorRgba c);
+std::ostream &operator<<(std::ostream &os, ColorHsva c);
 
 } // namespace GraphicsTools
 

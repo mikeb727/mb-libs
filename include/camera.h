@@ -17,7 +17,7 @@ public:
   // ctor
   Camera();
   // using default copy ctor
-  
+
   // getters
   glm::vec3 pos() const { return _pos; };
   // local axes
@@ -39,9 +39,11 @@ public:
   void setPitch(float pitch);
   void setPerspective(float fov, float aspectRatio);
   void setOrtho(float width, float height);
+  void setOrtho2(float width, float height);
 
   // debug
-  void debugPrint(std::ostream &out = std::cerr) const;
+  void debugPrint(std::ostream &out = std::cerr,
+                  bool printMatrices = false) const;
 
 private:
   glm::vec3 _pos, _right, _forward, _up;

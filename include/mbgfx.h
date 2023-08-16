@@ -27,7 +27,7 @@ namespace GraphicsTools {
 int InitGraphics();
 int CloseGraphics();
 
-// utility
+// utility; transform a number x from [a1, a2] to [b1, b2]
 float remap(float x, float a1, float a2, float b1, float b2);
 
 enum TextAlignModeH { Left, Center, Right };
@@ -85,7 +85,7 @@ public:
   void setVao(unsigned int vao) { _vao = vao; };
   void setVbo(unsigned int vbo) { _vbo = vbo; };
 
-  // generate geometry
+  // generate primitive geometries
   void genSphere(float radius, int numLatSegments, int numLonSegments);
   void genCube(float sideLength);
   void genPlane(float width, float depth);
@@ -97,23 +97,23 @@ public:
             ShaderProgram *overrideShader = NULL);
 
   // debug
-  void debugPrint();
+  void debugPrint(std::ostream &out = std::cerr);
 
 private:
   glm::vec3 _pos;
   glm::vec3 _rot;
-  glm::mat4 _modelMat; // model matrix
-  glm::mat4 _normalMat;
+  glm::mat4 _modelMat;       // computed from position and euler angles
+  glm::mat4 _normalMat;      // used for lighting calcs
   std::vector<float> _vData; // interleaved positions, normals, and optional
                              // texture coordinates for OpenGL
   unsigned int _vDataWidth;  // number of floats to define a vertex; 8 if
-                             // textures are used, 6 otherwise
+                             // 2D textures are used, 6 otherwise
   unsigned int _vao, _vbo;   // vertex array and buffer (OpenGL)
+                             // set from Scene when drawing
   ShaderProgram *_sp;
-  Material _material; // texture is now part of material (as diffuse map)
+  Material _material; // including texture (diffuse map)
 
   void recalc(glm::mat4 viewMat);
-  void setupGl();
 };
 
 class Scene {
@@ -125,8 +125,8 @@ public:
   // manage elements
   void addRenderObject(RenderObject *obj) {
     _objs.emplace(_nextObjId++, obj);
-    obj->setVao(_3DVao);
-    obj->setVbo(_3DVbo);
+    obj->setVao(_vao3);
+    obj->setVbo(_vbo3);
   };
   void removeRenderObject(int id) { _objs.erase(id); };
   void addCamera(Camera *cam) { _cameras.emplace(_nextCamId++, cam); };
@@ -143,6 +143,7 @@ public:
   void setWindowDimensions(int w, int h);
   void resetDepth() { _depth = -99.0f; };
   void setShadows(bool s) { _useShadows = s; };
+  void setAlt2DShader(ShaderProgram *sp) { _shader2Alt = sp; };
 
   void setupShadows();
   void renderShadows() const;
@@ -151,14 +152,19 @@ public:
   // 2D drawing
   void drawText2D(GraphicsTools::Font font, std::string text,
                   GraphicsTools::ColorRgba textColor, float x0, float y0,
-                  float width, float scale);
+                  float width, GraphicsTools::TextAlignModeH alignment,
+                  float scale);
   void drawCircle2D(GraphicsTools::ColorRgba color, float x, float y, float r);
   void drawRectangle2D(GraphicsTools::ColorRgba color, float x1, float y1,
                        float x2, float y2);
   void drawLine2D(GraphicsTools::ColorRgba color, float thickness, float x1,
                   float y1, float x2, float y2);
-  void drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness);
-
+  // specify points as [x1, y1, x2, y2, x3, y3, etc.]
+  void drawMultiLine2D(GraphicsTools::ColorRgba color, float thickness,
+                       int numPoints, float *points);
+  void drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1, float x2,
+                   float y2, float thickness);
+  void drawAltShader2D();
 
 private:
   // give each object a unique ID. possibly remove this and have external user
@@ -180,13 +186,14 @@ private:
   ShaderProgram *_depthShader;
 
   // for rendering all 2D elements
-  unsigned int _2DVao, _2DVbo;
-  glm::mat4 _2DProj;
-  ShaderProgram *_2DShader;
-  float _depth; // increment for every 2D element drawn
+  unsigned int _vao2, _vbo2;
+  glm::mat4 _proj2;
+  ShaderProgram *_shader2;
+  ShaderProgram *_shader2Alt; // for 2D elements other than primitives
+  float _depth;               // increment for every 2D element drawn
 
   // for rendering all 3D elements
-  unsigned int _3DVao, _3DVbo;
+  unsigned int _vao3, _vbo3;
 
   // for recomputing the text projection upon window resizing
   int _windowWidth, _windowHeight;
@@ -218,7 +225,8 @@ public:
 
   // drawing functions
   // make scene responsible for these
-  void drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness);
+  void drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2,
+                 float y2, float thickness);
   void drawRectangle(GraphicsTools::ColorRgba color, int x1, int y1, int x2,
                      int y2);
   void drawCircle(GraphicsTools::ColorRgba, float x, float y, float r);
@@ -230,6 +238,8 @@ public:
                     GraphicsTools::TextAlignModeH::Left);
   void drawLine(GraphicsTools::ColorRgba color, int thickness, int x1, int y1,
                 int x2, int y2);
+  void drawMultiLine(GraphicsTools::ColorRgba color, int thickness,
+                     int numPoints, float *points);
 
   // load, then draw to show an image
   // use our texture object from the opengl tutorial

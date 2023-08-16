@@ -6,14 +6,16 @@
 #include <iostream>
 #include <random>
 
+#define DECIMAL_PRECISION 2
+
 namespace GraphicsTools {
 
 ColorRgba blend(ColorRgba c1, float w1, ColorRgba c2, float w2) {
-  float sumWeights = w1 + w2;
-  ColorRgba result = {((w1 * c1.r + w2 * c2.r) / sumWeights),
-                      ((w1 * c1.g + w2 * c2.g) / sumWeights),
-                      ((w1 * c1.b + w2 * c2.b) / sumWeights),
-                      ((w1 * c1.a + w2 * c2.a) / sumWeights)};
+  // normalize weights
+  float n1 = w1 / (w1 + w2);
+  float n2 = w2 / (w1 + w2);
+  ColorRgba result = {(n1 * c1.r + n2 * c2.r), (n1 * c1.g + n2 * c2.g),
+                      (n1 * c1.b + n2 * c2.b), (n1 * c1.a + n2 * c2.a)};
   return result;
 }
 
@@ -110,14 +112,14 @@ ColorRgba operator*(float m, ColorRgba c) {
 }
 
 std::ostream &operator<<(std::ostream &os, ColorRgba c) {
-  os << std::setiosflags(std::ios::fixed) << std::setprecision(2);
+  os << std::setiosflags(std::ios::fixed) << std::setprecision(DECIMAL_PRECISION);
   os << "r " << c.r << " g " << c.g << " b " << c.b << " a " << c.a;
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, ColorHsva c) {
-  os << std::setiosflags(std::ios::fixed) << std::setprecision(2);
-  os << "r " << c.h << " g " << c.s << " b " << c.v << " a " << c.a;
+  os << std::setiosflags(std::ios::fixed) << std::setprecision(DECIMAL_PRECISION);
+  os << "h " << c.h << " s " << c.s << " v " << c.v << " a " << c.a;
   return os;
 }
 

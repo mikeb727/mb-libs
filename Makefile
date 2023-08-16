@@ -2,7 +2,9 @@ GFX_TARGETS=$(addprefix libmbgfx, .so)
 GFX_OBJ=$(addsuffix .o, camera colors gl errors mbgfx renderObject scene shader texture window)
 GFX_OBJS=$(addprefix $(BIN)/shared/, $(GFX_OBJ))
 
-CHART_TARGETS=$(addprefix libmbchart, .so .a)
+CHART_TARGETS=$(addprefix libmbchart, .so)
+CHART_OBJ=$(addsuffix .o, mbchart)
+CHART_OBJS=$(addprefix $(BIN)/shared/, $(CHART_OBJ))
 
 CPP=clang++
 C=clang
@@ -23,8 +25,8 @@ DESTDIR=
 
 .PHONY: all shared static clean install
 
-all: mbgfx
-tests: $(TEST)/test1 $(TEST)/test2 $(TEST)/test3 $(TEST)/test4
+all: mbgfx mbchart
+tests: $(TEST)/test1 $(TEST)/test2 $(TEST)/test3 $(TEST)/test4 $(TEST)/test5 $(TEST)/test6
 
 install:
 	mkdir -p $(DESTDIR)/usr/lib/mb-libs/
@@ -51,12 +53,22 @@ $(TEST)/test3: $(BIN)/test/test3.o mbgfx
 $(TEST)/test4: $(BIN)/test/test4.o mbgfx
 	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
 
+$(TEST)/test5: $(BIN)/test/test5.o mbgfx mbchart
+	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) -lmbchart $<
+
+$(TEST)/test6: $(BIN)/test/test6.o mbgfx
+	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+
 clean:
 	rm -rf ./$(BIN) ./$(LIB)
 
 $(LIB)/$(LIB)mbgfx.so: $(GFX_OBJS)
 	mkdir -p $(LIB)
 	$(CPP) $(DFLAGS) -shared $(GFX_OBJS) -o $@
+
+$(LIB)/$(LIB)mbchart.so: $(CHART_OBJS)
+	mkdir -p $(LIB)
+	$(CPP) $(DFLAGS) -shared $(CHART_OBJS) -o $@
 
 $(LIB)/$(LIB)%.a: $(BIN)/static/%.o
 	mkdir -p $(LIB)

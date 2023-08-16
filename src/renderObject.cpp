@@ -6,7 +6,7 @@
 
 // experimental; for vector slerp (lerping cube normals)
 #include <glm/gtx/rotate_vector.hpp>
-const float CUBE_NORMAL_SLERP_FACTOR = 0.0f;
+const float CUBE_NORMAL_SLERP_FACTOR = 0.1f;
 
 #include <iostream>
 
@@ -34,53 +34,27 @@ void RenderObject::genCube(float sideLength) {
   indices_v = {2, 3, 1, 1, 0, 2, 3, 7, 5, 5, 1, 3, 7, 6, 4, 4, 5, 7,
                6, 2, 0, 0, 4, 6, 3, 2, 6, 6, 7, 3, 5, 4, 0, 0, 1, 5};
 
-  // compute normals per triangle, since all the info is available to us
-  for (int tri = 0; tri < 12; ++tri) {
-    int vertOffsetA = (3 * tri) + 0;
-    int vertOffsetB = (3 * tri) + 1;
-    int vertOffsetC = (3 * tri) + 2;
+  // only six possible normals in model space, so store these in memory
+  // divide index subscript by 6 to get corresponding normal subscript
+  normals_v = {
+      {0.0f, 0.0f, -1.0f},
+      {1.0f, 0.0f, 0.0f},
+      {0.0f, 0.0f, 1.0f},
+      {-1.0f, 0.0f, 0.0f},
+      {0.0f, 1.0f, 0.0f},
+      {0.0f, -1.0f, 0.0f}
+  };
 
-    int vertIndexA = indices_v[vertOffsetA];
-    int vertIndexB = indices_v[vertOffsetB];
-    int vertIndexC = indices_v[vertOffsetC];
+  for (int i = 0; i < indices_v.size(); ++i){
+    _vData.push_back(verts_v.at(indices_v.at(i)).x);
+    _vData.push_back(verts_v.at(indices_v.at(i)).y);
+    _vData.push_back(verts_v.at(indices_v.at(i)).z);
+    _vData.push_back(glm::slerp(normals_v.at(i/6), glm::normalize(verts_v.at(indices_v.at(i))), CUBE_NORMAL_SLERP_FACTOR).x);
+    _vData.push_back(glm::slerp(normals_v.at(i/6), glm::normalize(verts_v.at(indices_v.at(i))), CUBE_NORMAL_SLERP_FACTOR).y);
+    _vData.push_back(glm::slerp(normals_v.at(i/6), glm::normalize(verts_v.at(indices_v.at(i))), CUBE_NORMAL_SLERP_FACTOR).z);
+    _vData.push_back(verts_v.at(indices_v.at(i)).x);
+    _vData.push_back(verts_v.at(indices_v.at(i)).y);
 
-    glm::vec3 vertA = verts_v[vertIndexA];
-    glm::vec3 vertB = verts_v[vertIndexB];
-    glm::vec3 vertC = verts_v[vertIndexC];
-
-    // spherical normals (for interpolation)
-    glm::vec3 sphNormalA = glm::normalize(vertA);
-    glm::vec3 sphNormalB = glm::normalize(vertB);
-    glm::vec3 sphNormalC = glm::normalize(vertC);
-
-    glm::vec3 triSegmentAB = vertB - vertA;
-    glm::vec3 triSegmentAC = vertC - vertA;
-
-    glm::vec3 vertNormalCommon =
-        glm::normalize(glm::cross(triSegmentAB, triSegmentAC));
-
-    glm::vec3 vertNormalA = glm::normalize(
-        glm::slerp(vertNormalCommon, sphNormalA, CUBE_NORMAL_SLERP_FACTOR));
-    glm::vec3 vertNormalB = glm::normalize(
-        glm::slerp(vertNormalCommon, sphNormalB, CUBE_NORMAL_SLERP_FACTOR));
-    glm::vec3 vertNormalC = glm::normalize(
-        glm::slerp(vertNormalCommon, sphNormalC, CUBE_NORMAL_SLERP_FACTOR));
-
-    normals_v.push_back(vertNormalA);
-    normals_v.push_back(vertNormalB);
-    normals_v.push_back(vertNormalC);
-  }
-
-  for (unsigned int i : indices_v) {
-    _vData.push_back(verts_v.at(i).x);
-    _vData.push_back(verts_v.at(i).y);
-    _vData.push_back(verts_v.at(i).z);
-    _vData.push_back(normals_v.at(i).x);
-    _vData.push_back(normals_v.at(i).y);
-    _vData.push_back(normals_v.at(i).z);
-    // use vertex coords as 2D texture coords
-    _vData.push_back(verts_v.at(i).x);
-    _vData.push_back(verts_v.at(i).y);
   }
 }
 
@@ -243,7 +217,7 @@ void RenderObject::genPlane(float width, float depth) {
   }
 }
 
-void RenderObject::debugPrint() {
+void RenderObject::debugPrint(std::ostream &out) {
   // for (int i = 0; i < _indices.size(); ++i) {
   //   std::fprintf(stderr, "%i (index %i)\n", i, _indices[i]);
   //   std::fprintf(stderr, "vert %f, %f, %f\n", _preBuffer[(_vDataWidth * i) +
@@ -269,7 +243,7 @@ void RenderObject::recalc(glm::mat4 viewMat = glm::identity<glm::mat4>()) {
               // glm::rotate(_rot.x, glm::vec3(1.0f, 0.0f, 0.0f)) *
               // glm::rotate(_rot.y, glm::vec3(0.0f, 1.0f, 0.0f)) *
               glm::rotate(_rot.z, glm::vec3(0.0f, 0.0f, 1.0f));
-  _normalMat = glm::transpose(glm::inverse(_modelMat));
+  _normalMat = glm::inverseTranspose(glm::mat3(_modelMat));
 }
 
 void RenderObject::setPos(glm::vec3 newPos) {
@@ -298,14 +272,14 @@ void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat,
     _sp->setUniform("projMat", projMat);
     _sp->setUniform("normalMat", _normalMat);
     _sp->setUniform("lightMat", lightMat);
-      _sp->setUniform("material.diffuse", colorToGlm(_material.diffuse));
-      _sp->setUniform("material.useDiffuseMap", _material.diffuseMap != NULL);
-      _sp->setUniform("material.specular", colorToGlm(_material.specular));
-      _sp->setUniform("material.shininess", _material.shininess);
-      if (_material.diffuseMap) {
-        glActiveTexture(GL_TEXTURE1);
-        _material.diffuseMap->use();
-      }
+    _sp->setUniform("material.diffuse", colorToGlm(_material.diffuse));
+    _sp->setUniform("material.useDiffuseMap", _material.diffuseMap != NULL);
+    _sp->setUniform("material.specular", colorToGlm(_material.specular));
+    _sp->setUniform("material.shininess", _material.shininess);
+    if (_material.diffuseMap) {
+      glActiveTexture(GL_TEXTURE1);
+      _material.diffuseMap->use();
+    }
   }
   glBindBuffer(GL_ARRAY_BUFFER, _vbo);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * _vData.size(),

@@ -22,10 +22,10 @@ Scene::Scene()
     : _windowWidth(0), _windowHeight(0), _nextCamId(0), _nextObjId(0),
       _activeCamId(-1), _dLight(NULL), _depth(-99.0f), _useShadows(false) {
 
-  glGenVertexArrays(1, &_2DVao);
-  glGenBuffers(1, &_2DVbo);
-  glBindVertexArray(_2DVao);
-  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  glGenVertexArrays(1, &_vao2);
+  glGenBuffers(1, &_vbo2);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferData(GL_ARRAY_BUFFER, VBO_2D_MAX_SIZE * sizeof(float), NULL,
                GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(0);
@@ -33,10 +33,10 @@ Scene::Scene()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
-  glGenVertexArrays(1, &_3DVao);
-  glGenBuffers(1, &_3DVbo);
-  glBindVertexArray(_3DVao);
-  glBindBuffer(GL_ARRAY_BUFFER, _3DVbo);
+  glGenVertexArrays(1, &_vao3);
+  glGenBuffers(1, &_vbo3);
+  glBindVertexArray(_vao3);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo3);
   glBufferData(GL_ARRAY_BUFFER, VBO_3D_MAX_SIZE * sizeof(float), NULL,
                GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(0);
@@ -54,12 +54,13 @@ Scene::Scene()
   glBindVertexArray(0);
 
   _depthShader = NULL;
-  _2DShader = new ShaderProgram("assets/2d_vs.glsl", "assets/2d_fs.glsl");
+  _shader2 = new ShaderProgram("assets/2d_vs.glsl", "assets/2d_fs.glsl");
+  _shader2Alt = NULL;
 }
 
 Scene::~Scene() {
   delete _depthShader;
-  delete _2DShader;
+  delete _shader2;
 }
 
 Camera *Scene::activeCamera() const {
@@ -70,8 +71,8 @@ void Scene::setWindowDimensions(int w, int h) {
   _windowWidth = w;
   _windowHeight = h;
   // careful! z-axis is reversed in orthographic projection
-  _2DProj = glm::ortho(0.0f, (float)_windowWidth, 0.0f, (float)_windowHeight,
-                       -100.0f, 100.0f);
+  _proj2 = glm::ortho(0.0f, (float)_windowWidth, 0.0f, (float)_windowHeight,
+                      -1000.0f, 1000.0f);
 };
 
 void Scene::setupShadows() {
@@ -98,7 +99,7 @@ void Scene::setupShadows() {
   _lightView = glm::lookAt(-30.0f * _dLight->_dir, glm::zero<glm::vec3>(),
                            glm::vec3(0.0f, 1.0f, 0.001f));
   _lightProj = glm::ortho(-SHADOW_FRUSTUM_WIDTH, SHADOW_FRUSTUM_WIDTH,
-                          -SHADOW_FRUSTUM_WIDTH, SHADOW_FRUSTUM_WIDTH, 0.1f,
+                          -SHADOW_FRUSTUM_WIDTH, SHADOW_FRUSTUM_WIDTH, 0.01f,
                           SHADOW_FRUSTUM_DEPTH);
   _depthShader =
       new ShaderProgram("assets/depth_vs.glsl", "assets/depth_fs.glsl");
@@ -111,6 +112,7 @@ void Scene::renderShadows() const {
     glBindFramebuffer(GL_FRAMEBUFFER, _shadowFbo);
     glClearDepth(1.0);
     glClear(GL_DEPTH_BUFFER_BIT);
+    glCullFace(GL_NONE);
     for (auto &obj : _objs) {
       obj.second->draw(_lightView, _lightProj, _lightView, _depthShader);
     }
@@ -122,6 +124,7 @@ void Scene::render() const {
   if (_useShadows) {
     renderShadows();
   }
+  glCullFace(GL_BACK);
   glViewport(0, 0, _windowWidth, _windowHeight);
   if (_activeCamId != -1 && _dLight) {
     _dLight->sp->use();
@@ -146,20 +149,32 @@ void Scene::render() const {
 }
 
 void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
-                       float y0, float width, float drawScale) {
+                       float y0, float width,
+                       GraphicsTools::TextAlignModeH alignment,
+                       float drawScale) {
   glClear(GL_DEPTH_BUFFER_BIT);
-  _2DShader->use();
-  _2DShader->setUniform("color", glm::vec4(color.r, color.g, color.b, 1.0));
-  _2DShader->setUniform("transform", _2DProj);
+  _shader2->use();
+  _shader2->setUniform("color", glm::vec4(color.r, color.g, color.b, 1.0));
+  _shader2->setUniform("transform", _proj2);
   glActiveTexture(GL_TEXTURE0);
-  _2DShader->setUniform("tex", 0);
-  _2DShader->setUniform("useTex", 1);
-  _2DShader->setUniform("drawDepth", _depth);
-  glBindVertexArray(_2DVao);
+  _shader2->setUniform("tex", 0);
+  _shader2->setUniform("useTex", 1);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
 
   float x = x0, y = y0;
+  // two iterators; one for drawing glyphs left to right, one for computing x
+  // offset for center- and right-aligned text
   std::string::const_iterator ch;
   for (ch = str.begin(); ch != str.end(); ++ch) {
+    if (x == x0 && alignment == Right) {
+      std::string::const_iterator chAlignCalcH = ch;
+      while (x > (x0 - width) && ch != str.end()) {
+        x -= (font.glyph(*ch).charAdvance >> 6) * drawScale;
+        std::cerr << x << std::endl;
+        ++chAlignCalcH;
+      }
+    }
     if (*ch == '\n') {
       x = x0;
       y -= font.size() * drawScale;
@@ -181,7 +196,7 @@ void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
                          {quadX, quadY + quadH, 0.0f, 0.0f},
                          {quadX, quadY, 0.0f, 1.0f}};
     glBindTexture(GL_TEXTURE_2D, tch.glTextureId);
-    glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -205,14 +220,14 @@ void Scene::drawCircle2D(ColorRgba color, float x, float y, float r) {
     verts_v.push_back(0.0f);
   }
   float *verts = verts_v.data();
-  _2DShader->use();
-  _2DShader->setUniform("transform", _2DProj);
+  _shader2->use();
+  _shader2->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _2DShader->setUniform("color", shaderColor);
-  _2DShader->setUniform("useTex", 0);
-  _2DShader->setUniform("drawDepth", _depth);
-  glBindVertexArray(_2DVao);
-  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  _shader2->setUniform("color", shaderColor);
+  _shader2->setUniform("useTex", 0);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glDrawArrays(GL_TRIANGLE_FAN, 0, verts_v.size() / 4);
@@ -225,14 +240,14 @@ void Scene::drawRectangle2D(ColorRgba color, float x1, float y1, float x2,
                                 x2, y2, 0.0f, 0.0f, x2, y2, 0.0f, 0.0f,
                                 x1, y2, 0.0f, 0.0f, x1, y1, 0.0f, 0.0f};
   float *verts = verts_v.data();
-  _2DShader->use();
-  _2DShader->setUniform("transform", _2DProj);
+  _shader2->use();
+  _shader2->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _2DShader->setUniform("color", shaderColor);
-  _2DShader->setUniform("useTex", 0);
-  _2DShader->setUniform("drawDepth", _depth);
-  glBindVertexArray(_2DVao);
-  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  _shader2->setUniform("color", shaderColor);
+  _shader2->setUniform("useTex", 0);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
@@ -243,18 +258,43 @@ void Scene::drawLine2D(ColorRgba color, float thickness, float x1, float y1,
                        float x2, float y2) {
   std::vector<float> verts_v = {x1, y1, 0.0f, 0.0f, x2, y2, 0.0f, 0.0f};
   float *verts = verts_v.data();
-  _2DShader->use();
-  _2DShader->setUniform("transform", _2DProj);
+  _shader2->use();
+  _shader2->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _2DShader->setUniform("color", shaderColor);
-  _2DShader->setUniform("useTex", 0);
-  _2DShader->setUniform("drawDepth", _depth);
-  glBindVertexArray(_2DVao);
-  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  _shader2->setUniform("color", shaderColor);
+  _shader2->setUniform("useTex", 0);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glLineWidth(thickness);
   glDrawArrays(GL_LINES, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+void Scene::drawMultiLine2D(GraphicsTools::ColorRgba color, float thickness,
+                            int numPoints, float *points) {
+  std::vector<float> verts_v;
+  for (int v = 0; v < numPoints; ++v) {
+    verts_v.push_back(points[2 * v]);
+    verts_v.push_back(points[2 * v + 1]);
+    verts_v.push_back(0.0f);
+    verts_v.push_back(0.0f);
+  }
+  _shader2->use();
+  _shader2->setUniform("transform", _proj2);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  _shader2->setUniform("color", shaderColor);
+  _shader2->setUniform("useTex", 0);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float),
+                  verts_v.data());
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glLineWidth(thickness);
+  glDrawArrays(GL_LINE_STRIP, 0, verts_v.size() / 4);
   _depth += 1.0f;
 }
 
@@ -303,14 +343,51 @@ void Scene::drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1,
       0,
   };
   float *verts = verts_v.data();
-  _2DShader->use();
-  _2DShader->setUniform("transform", _2DProj);
+  _shader2->use();
+  _shader2->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _2DShader->setUniform("color", shaderColor);
-  _2DShader->setUniform("useTex", 0);
-  _2DShader->setUniform("drawDepth", _depth);
-  glBindVertexArray(_2DVao);
-  glBindBuffer(GL_ARRAY_BUFFER, _2DVbo);
+  _shader2->setUniform("color", shaderColor);
+  _shader2->setUniform("useTex", 0);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+void Scene::drawAltShader2D() {
+  _shader2Alt->use();
+  _shader2->setUniform("transform", _proj2);
+  std::vector<float> verts_v = {0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                (float)_windowWidth,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                (float)_windowWidth,
+                                (float)_windowHeight,
+                                0.0f,
+                                0.0f,
+                                (float)_windowWidth,
+                                (float)_windowHeight,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                (float)_windowHeight,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f};
+  float *verts = verts_v.data();
+
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);

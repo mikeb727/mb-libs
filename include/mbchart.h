@@ -9,11 +9,12 @@ namespace ChartTools {
 
 enum AutoScaleMode {
   NONE = 0x00,
-  SCALE_MIN = 0x01,    // automatically scales the minimum value
-  SCALE_MAX = 0x02,    // automatically scales the maximum value
-  PRESERVE_ZERO = 0x04 // prevents truncation of the axis, so zero
-                       // is always visible
+  SCALE_MIN = 0x01,    // auto-scale the axis lower bound to data
+  SCALE_MAX = 0x02,    // auto-scale the axis upper bound to data
+  PRESERVE_ZERO = 0x04 // force the axis range to contain zero (prevents axis
+                       // truncation)
 };
+
 
 AutoScaleMode operator|(AutoScaleMode lv, AutoScaleMode rv);
 
@@ -42,6 +43,7 @@ public:
   int getMaxSize() const { return maxSize; };
   int getCurrentSize() const { return currentSize; };
   double averageLastPoints(int numPoints) const;
+  std::vector<float> getPointCoords() const;
 };
 
 class LineChart {

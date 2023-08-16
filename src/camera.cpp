@@ -6,13 +6,15 @@
 
 #include <glm/gtx/string_cast.hpp> // debug; print matrices
 
+#define DECIMAL_PRECISION 2
+
 namespace GraphicsTools {
 
 Camera::Camera()
     : _pos(glm::zero<glm::vec3>()), _fov(45.0f), _aspectRatio(1.0f), _yaw(0.0f),
       _pitch(0.0f), _projType(CameraProjType::Undefined), _orthoWidth(0),
       _orthoHeight(0) {
-  _view = glm::translate(glm::identity<glm::mat4>(), _pos);
+  _view = glm::identity<glm::mat4>();
 }
 
 void Camera::setPos(glm::vec3 pos) {
@@ -43,7 +45,44 @@ void Camera::setOrtho(float width, float height) {
                  _pos.y - height / 2.0f, _pos.y + height / 2.0f, 0.1f, 2000.0f);
 };
 
+void Camera::setOrtho2(float width, float height) {
+  // same projection matrix as 2D scene
+  _projType = CameraProjType::Orthographic;
+  _proj =
+      glm::ortho(0.0f, _pos.x + width, 0.0f, _pos.y + height, -1000.0f, 1000.0f);
+};
+
+void Camera::debugPrint(std::ostream &out, bool printMatrices) const {
+  out << std::setiosflags(std::ios::fixed)
+      << std::setprecision(DECIMAL_PRECISION);
+  out << "camera\n";
+  switch (_projType) {
+  case Undefined:
+    out << "undefined projection\n";
+    break;
+  case Perspective:
+    out << "perspective projection fov " << _fov << ", aspect ratio "
+        << _aspectRatio << "\n";
+    break;
+  case Orthographic:
+    out << "orthographic projection width " << _orthoWidth << ", height "
+        << _orthoHeight << "\n";
+    break;
+  }
+  out << "world pos " << _pos.x << " " << _pos.y << " " << _pos.z << "\n";
+  out << "local x " << _right.x << " " << _right.y << " " << _right.z << "\n";
+  out << "local y " << _forward.x << " " << _forward.y << " " << _forward.z
+      << "\n";
+  out << "local z " << _up.x << " " << _up.y << " " << _up.z << "\n";
+  out << "yaw " << _yaw << " pitch " << _pitch << "\n";
+  if (printMatrices) {
+    out << "view matrix :\n" << glm::to_string(_view) << "\n";
+    out << "projection matrix :\n" << glm::to_string(_proj) << "\n";
+  }
+}
+
 void Camera::recalc() {
+  // translate, then rotate to allow camera to turn about its own axes
   glm::mat4 rotations =
       glm::rotate(glm::identity<glm::mat4>(), glm::radians(-_pitch),
                   glm::vec3(1.0f, 0.0f, 0.0f)) *
@@ -57,33 +96,6 @@ void Camera::recalc() {
   _right = glm::vec3(reverseRotations * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
   _forward = glm::vec3(reverseRotations * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f));
   _up = glm::cross(_right, _forward);
-}
-
-void Camera::debugPrint(std::ostream &out) const {
-  out << std::setiosflags(std::ios::fixed) << std::setprecision(2);
-  out << "camera\n";
-  switch (_projType) {
-  case Undefined:
-    out << "undefined projection\n";
-    break;
-  case Perspective:
-    out << "perspective projection; fov " << _fov << ", aspect ratio "
-        << _aspectRatio << "\n";
-    break;
-  case Orthographic:
-    out << "orthographic projection; width " << _orthoWidth << ", height "
-        << _orthoHeight << "\n";
-    break;
-  }
-  out << "world pos " << _pos.x << " " << _pos.y << " " << _pos.z << "\n";
-  out << "local x " << _right.x << " " << _right.y << " " << _right.z << "\n";
-  out << "local y " << _forward.x << " " << _forward.y << " " << _forward.z
-      << "\n";
-  out << "local z " << _up.x << " " << _up.y << " " << _up.z << "\n";
-  out << "yaw " << _yaw << " pitch " << _pitch << "\n";
-  out << "view matrix :\n" << glm::to_string(_view) << "\n";
-  out << "projection matrix :\n" << glm::to_string(_proj) << "\n";
-
 }
 
 } // namespace GraphicsTools
