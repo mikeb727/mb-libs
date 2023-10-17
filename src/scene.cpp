@@ -14,7 +14,7 @@ const int VBO_2D_MAX_SIZE = 4000;
 const int VBO_3D_MAX_SIZE = 40000;
 const int VAO_3D_DATA_WIDTH = 8;
 
-const int CIRCLE_2D_RESOLUTION = 40;
+const int CIRCLE_2D_RESOLUTION = 100;
 
 namespace GraphicsTools {
 
@@ -231,6 +231,32 @@ void Scene::drawCircle2D(ColorRgba color, float x, float y, float r) {
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glDrawArrays(GL_TRIANGLE_FAN, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+void Scene::drawCircleOutline2D(GraphicsTools::ColorRgba color, float x,
+                                float y, float r, float thickness) {
+  std::vector<float> verts_v;
+  for (int i = 0; i < CIRCLE_2D_RESOLUTION + 1; ++i) {
+    float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
+    verts_v.push_back(x + ((r - 0.25f * thickness) * cos(angle)));
+    verts_v.push_back(y + ((r - 0.25f * thickness) * sin(angle)));
+    verts_v.push_back(0.0f);
+    verts_v.push_back(0.0f);
+  }
+  float *verts = verts_v.data();
+  _shader2->use();
+  _shader2->setUniform("transform", _proj2);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  _shader2->setUniform("color", shaderColor);
+  _shader2->setUniform("useTex", 0);
+  _shader2->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glLineWidth(thickness);
+  glDrawArrays(GL_LINE_STRIP, 0, verts_v.size() / 4);
   _depth += 1.0f;
 }
 

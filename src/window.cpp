@@ -91,6 +91,15 @@ void Window::drawCircle(GraphicsTools::ColorRgba color, float x, float y,
   _sc->drawCircle2D(color, x, y, r);
 }
 
+void Window::drawCircleOutline(GraphicsTools::ColorRgba color, float x, float y,
+                       float r, float thickness) {
+  if (!_ready) {
+    std::cerr << "window is not initialized!\n";
+    return;
+  }
+  _sc->drawCircleOutline2D(color, x, y, r, thickness);
+}
+
 void Window::drawCircleGradient(GraphicsTools::ColorRgba outer,
                                 GraphicsTools::ColorRgba inner, int x, int y,
                                 int r) {
@@ -119,7 +128,8 @@ void Window::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,
   _sc->drawLine2D(color, thickness, x1, y1, x2, y2);
 }
 
-void Window::drawMultiLine(GraphicsTools::ColorRgba color, int thickness, int numPoints, float *points) {
+void Window::drawMultiLine(GraphicsTools::ColorRgba color, int thickness,
+                           int numPoints, float *points) {
   if (!_ready) {
     std::cerr << "window is not initialized!\n";
     return;
@@ -127,7 +137,8 @@ void Window::drawMultiLine(GraphicsTools::ColorRgba color, int thickness, int nu
   _sc->drawMultiLine2D(color, thickness, numPoints, points);
 }
 
-void Window::drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2, float y2, float thickness){
+void Window::drawArrow(GraphicsTools::ColorRgba color, float x1, float y1,
+                       float x2, float y2, float thickness) {
   _sc->drawArrow2D(color, x1, y1, x2, y2, thickness);
 }
 

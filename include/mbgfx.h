@@ -155,6 +155,7 @@ public:
                   float width, GraphicsTools::TextAlignModeH alignment,
                   float scale);
   void drawCircle2D(GraphicsTools::ColorRgba color, float x, float y, float r);
+  void drawCircleOutline2D(GraphicsTools::ColorRgba color, float x, float y, float r, float thickness);
   void drawRectangle2D(GraphicsTools::ColorRgba color, float x1, float y1,
                        float x2, float y2);
   void drawLine2D(GraphicsTools::ColorRgba color, float thickness, float x1,
@@ -229,7 +230,8 @@ public:
                  float y2, float thickness);
   void drawRectangle(GraphicsTools::ColorRgba color, int x1, int y1, int x2,
                      int y2);
-  void drawCircle(GraphicsTools::ColorRgba, float x, float y, float r);
+  void drawCircle(GraphicsTools::ColorRgba color, float x, float y, float r);
+  void drawCircleOutline(GraphicsTools::ColorRgba color, float x, float y, float r, float thickness);
   void drawCircleGradient(GraphicsTools::ColorRgba outer,
                           GraphicsTools::ColorRgba inner, int x, int y, int r);
   void drawText(std::string str, GraphicsTools::Font *font,
