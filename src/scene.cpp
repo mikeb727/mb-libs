@@ -1,10 +1,4 @@
-#include "glad/gl.h"
-#include "mbgfx.h"
-#include "shader.h"
-
-#include <cmath>
-#include <iostream>
-#include <vector>
+#include "scene.h"
 
 const int SHADOW_TEX_SIZE = 4096;
 const float SHADOW_FRUSTUM_DEPTH = 100;
@@ -62,6 +56,12 @@ Scene::~Scene() {
   delete _depthShader;
   delete _shader2;
 }
+
+void Scene::addRenderObject(RenderObject *obj) {
+  _objs.emplace(_nextObjId++, obj);
+  obj->setVao(_vao3);
+  obj->setVbo(_vbo3);
+};
 
 Camera *Scene::activeCamera() const {
   return _activeCamId != -1 ? _cameras.at(_activeCamId) : NULL;

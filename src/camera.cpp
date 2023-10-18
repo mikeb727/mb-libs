@@ -1,11 +1,5 @@
 #include "camera.h"
 
-#include <cmath>
-#include <iomanip>
-#include <iostream>
-
-#include <glm/gtx/string_cast.hpp> // debug; print matrices
-
 #define DECIMAL_PRECISION 2
 
 namespace GraphicsTools {

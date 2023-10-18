@@ -1,9 +1,12 @@
 #ifndef CHARTS_H
 #define CHARTS_H
 
-#include <string>
-
 #include "mbgfx.h"
+#include "window.h"
+
+#include <cmath>
+#include <iostream>
+#include <string>
 
 namespace ChartTools {
 

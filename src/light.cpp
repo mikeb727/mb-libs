@@ -1,7 +1,5 @@
 #include "light.h"
 
-#include <iostream>
-
 // point light attenuation constants by polynomial degree
 const float kd0 = 1.0f;
 const float kd1 = 4.9f;

@@ -2,11 +2,15 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+
 // matrix math
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
-#include <iostream>
+#include <glm/gtx/string_cast.hpp> // debug; print matrices
 
 namespace GraphicsTools {
 

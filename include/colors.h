@@ -1,8 +1,12 @@
 #ifndef COLORS_H
 #define COLORS_H
 
+#include <algorithm>
+#include <chrono>
 #include <glm/glm.hpp>
+#include <iomanip>
 #include <iostream>
+#include <random>
 
 namespace GraphicsTools {
 

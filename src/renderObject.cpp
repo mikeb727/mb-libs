@@ -1,14 +1,4 @@
 #include "renderObject.h"
-#include "colors.h"
-#include "errors.h"
-#include "glad/gl.h"
-#include "shader.h"
-
-// experimental; for vector slerp (lerping cube normals)
-#include <glm/gtx/rotate_vector.hpp>
-const float CUBE_NORMAL_SLERP_FACTOR = 0.1f;
-
-#include <iostream>
 
 namespace GraphicsTools {
 
@@ -36,25 +26,27 @@ void RenderObject::genCube(float sideLength) {
 
   // only six possible normals in model space, so store these in memory
   // divide index subscript by 6 to get corresponding normal subscript
-  normals_v = {
-      {0.0f, 0.0f, -1.0f},
-      {1.0f, 0.0f, 0.0f},
-      {0.0f, 0.0f, 1.0f},
-      {-1.0f, 0.0f, 0.0f},
-      {0.0f, 1.0f, 0.0f},
-      {0.0f, -1.0f, 0.0f}
-  };
+  normals_v = {{0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
+               {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}};
 
-  for (int i = 0; i < indices_v.size(); ++i){
+  for (int i = 0; i < indices_v.size(); ++i) {
     _vData.push_back(verts_v.at(indices_v.at(i)).x);
     _vData.push_back(verts_v.at(indices_v.at(i)).y);
     _vData.push_back(verts_v.at(indices_v.at(i)).z);
-    _vData.push_back(glm::slerp(normals_v.at(i/6), glm::normalize(verts_v.at(indices_v.at(i))), CUBE_NORMAL_SLERP_FACTOR).x);
-    _vData.push_back(glm::slerp(normals_v.at(i/6), glm::normalize(verts_v.at(indices_v.at(i))), CUBE_NORMAL_SLERP_FACTOR).y);
-    _vData.push_back(glm::slerp(normals_v.at(i/6), glm::normalize(verts_v.at(indices_v.at(i))), CUBE_NORMAL_SLERP_FACTOR).z);
+    _vData.push_back(glm::slerp(normals_v.at(i / 6),
+                                glm::normalize(verts_v.at(indices_v.at(i))),
+                                CUBE_NORMAL_SLERP_FACTOR)
+                         .x);
+    _vData.push_back(glm::slerp(normals_v.at(i / 6),
+                                glm::normalize(verts_v.at(indices_v.at(i))),
+                                CUBE_NORMAL_SLERP_FACTOR)
+                         .y);
+    _vData.push_back(glm::slerp(normals_v.at(i / 6),
+                                glm::normalize(verts_v.at(indices_v.at(i))),
+                                CUBE_NORMAL_SLERP_FACTOR)
+                         .z);
     _vData.push_back(verts_v.at(indices_v.at(i)).x);
     _vData.push_back(verts_v.at(indices_v.at(i)).y);
-
   }
 }
 

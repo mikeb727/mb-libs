@@ -1,11 +1,4 @@
-#include "mbgfx.h"
-
-#include <GLFW/glfw3.h>
-#include <algorithm>
-#include <chrono>
-#include <cmath>
-#include <iostream>
-#include <random>
+#include "window.h"
 
 namespace GraphicsTools {
 

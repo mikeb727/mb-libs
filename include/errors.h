@@ -3,6 +3,7 @@
 #define ERRORS_H
 
 #include "glad/gl.h"
+
 #include <string>
 
 namespace GraphicsTools {

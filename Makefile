@@ -1,10 +1,12 @@
-GFX_TARGETS=$(addprefix libmbgfx, .so)
+GFX_TARGETS=$(addprefix libmbgfx, .so .a)
 GFX_OBJ=$(addsuffix .o, camera colors gl errors mbgfx renderObject scene shader texture window)
 GFX_OBJS=$(addprefix $(BIN)/shared/, $(GFX_OBJ))
+GFX_OBJS_STATIC=$(addprefix $(BIN)/static/, $(GFX_OBJ))
 
-CHART_TARGETS=$(addprefix libmbchart, .so)
+CHART_TARGETS=$(addprefix libmbchart, .so .a)
 CHART_OBJ=$(addsuffix .o, mbchart)
 CHART_OBJS=$(addprefix $(BIN)/shared/, $(CHART_OBJ))
+CHART_OBJS_STATIC=$(addprefix $(BIN)/static/, $(CHART_OBJ))
 
 CPP=clang++
 C=clang
@@ -70,9 +72,9 @@ $(LIB)/$(LIB)mbchart.so: $(CHART_OBJS)
 	mkdir -p $(LIB)
 	$(CPP) $(DFLAGS) -shared $(CHART_OBJS) -o $@
 
-$(LIB)/$(LIB)%.a: $(BIN)/static/%.o
+$(LIB)/$(LIB)mbgfx.a: $(GFX_OBJS_STATIC)
 	mkdir -p $(LIB)
-	ar rcs $@ $<
+	ar rcs $@ $^
 
 $(BIN)/shared/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
@@ -85,6 +87,10 @@ $(BIN)/shared/%.o: $(SRC)/%.c
 $(BIN)/static/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
 	$(CPP) -std=c++17 $(DFLAGS) $(IFLAGS) -c $< -o $@
+
+$(BIN)/static/%.o: $(SRC)/%.c
+	mkdir -p $(dir $@)
+	$(C) -std=c17 $(DFLAGS) $(IFLAGS) -c $< -o $@
 
 $(BIN)/test/%.o: $(TEST)/%.cpp
 	mkdir -p $(dir $@)

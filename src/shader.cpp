@@ -1,9 +1,4 @@
 #include "shader.h"
-#include "errors.h"
-
-#include <fstream>
-#include <iostream>
-#include <sstream>
 
 ShaderProgram::ShaderProgram(const char *vsPath, const char *fsPath) {
   std::string vsSourceInter, fsSourceInter;
@@ -26,27 +21,48 @@ ShaderProgram::ShaderProgram(const char *vsPath, const char *fsPath) {
   const char *vsSource = vsSourceInter.c_str();
   const char *fsSource = fsSourceInter.c_str();
 
+  int vsResult, fsResult;
+  char vsLog[512], fsLog[512];
+  compile(vsSource, fsSource, vsResult, fsResult, vsLog, fsLog);
+
+  if (!vsResult) {
+    std::fprintf(stderr, "could not compile vertex shader \"%s\":\n%s\n",
+                 vsPath, vsLog);
+  }
+  if (!fsResult) {
+    std::fprintf(stderr, "could not compile fragment shader \"%s\":\n%s\n",
+                 fsPath, fsLog);
+  }
+}
+
+ShaderProgram::ShaderProgram(const char *vsSource, const char *fsSource,
+                             bool rawString) {
+  int vsResult, fsResult;
+  char vsLog[512], fsLog[512];
+  compile(vsSource, fsSource, vsResult, fsResult, vsLog, fsLog);
+  if (!vsResult) {
+    std::fprintf(stderr, "could not compile vertex shader:\n%s\n", vsLog);
+  }
+  if (!fsResult) {
+    std::fprintf(stderr, "could not compile fragment shader:\n%s\n", fsLog);
+  }
+}
+
+void ShaderProgram::compile(const char *vsSource, const char *fsSource,
+                            int &vsResult, int &fsResult, char vsLog[],
+                            char fsLog[]) {
   unsigned int vsId = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vsId, 1, &vsSource, NULL);
   glCompileShader(vsId);
   // check our work
-  char compileLog[512];
-  int vsCompileResult;
-  glGetShaderiv(vsId, GL_COMPILE_STATUS, &vsCompileResult);
-  if (!vsCompileResult) {
-    glGetShaderInfoLog(vsId, 512, NULL, compileLog);
-    std::fprintf(stderr, "could not compile vertex shader \"%s\":\n%s\n", vsPath, compileLog);
-  }
+  glGetShaderiv(vsId, GL_COMPILE_STATUS, &vsResult);
+  glGetShaderInfoLog(vsId, 512, NULL, vsLog);
 
   unsigned int fsId = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fsId, 1, &fsSource, NULL);
   glCompileShader(fsId);
-  int fsCompileResult;
-  glGetShaderiv(fsId, GL_COMPILE_STATUS, &fsCompileResult);
-  if (!fsCompileResult) {
-    glGetShaderInfoLog(fsId, 512, NULL, compileLog);
-    std::fprintf(stderr, "could not compile fragment shader \"%s\":\n%s\n", fsPath, compileLog);
-  }
+  glGetShaderiv(fsId, GL_COMPILE_STATUS, &fsResult);
+  glGetShaderInfoLog(fsId, 512, NULL, fsLog);
 
   _glId = glCreateProgram();
   glAttachShader(_glId, vsId);
@@ -82,9 +98,11 @@ void ShaderProgram::setUniform(const std::string &varName, glm::mat4 val) {
 }
 
 void ShaderProgram::setUniform(const std::string &varName, glm::vec3 val) {
-  glUniform3fv(glGetUniformLocation(_glId, varName.c_str()), 1, glm::value_ptr(val));
+  glUniform3fv(glGetUniformLocation(_glId, varName.c_str()), 1,
+               glm::value_ptr(val));
 }
 
 void ShaderProgram::setUniform(const std::string &varName, glm::vec4 val) {
-  glUniform4fv(glGetUniformLocation(_glId, varName.c_str()), 1, glm::value_ptr(val));
+  glUniform4fv(glGetUniformLocation(_glId, varName.c_str()), 1,
+               glm::value_ptr(val));
 }

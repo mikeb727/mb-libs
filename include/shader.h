@@ -3,16 +3,22 @@
 
 #include "glad/gl.h"
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
-
-#include <string>
 
 class ShaderProgram {
 
 public:
   // ctor
   ShaderProgram(const char *vsPath, const char *fsPath);
+  // rawString is dummy variable; its presence indicates use of actual source
+  // vs. path to source
+  ShaderProgram(const char *vsSource, const char *fsSource, bool rawString);
 
   // getters
   unsigned int id() const { return _glId; };
@@ -29,6 +35,8 @@ public:
 
 private:
   unsigned int _glId;
+  void compile(const char *vsSource, const char *fsSource, int &vsResult,
+               int &fsResult, char vsLog[], char fsLog[]);
 };
 
 #endif

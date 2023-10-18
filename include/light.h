@@ -4,8 +4,9 @@
 #include "colors.h"
 #include "shader.h"
 
-#include <glm/glm.hpp>
 #include <iostream>
+
+#include <glm/glm.hpp>
 
 namespace GraphicsTools {
 

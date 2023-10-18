@@ -1,8 +1,5 @@
 #include "mbchart.h"
 
-#include <cmath>
-#include <iostream>
-
 namespace ChartTools {
 
 AutoScaleMode operator|(AutoScaleMode lv, AutoScaleMode rv) {

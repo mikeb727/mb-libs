@@ -1,9 +1,4 @@
 #include "texture.h"
-#include "errors.h"
-#include "glad/gl.h"
-
-#include <iostream>
-#include <string>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

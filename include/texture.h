@@ -4,6 +4,9 @@
 
 #include "glad/gl.h"
 
+#include <iostream>
+#include <string>
+
 class Texture {
 public:
   // ctor

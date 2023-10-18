@@ -1,11 +1,5 @@
 #include "colors.h"
 
-#include <algorithm>
-#include <chrono>
-#include <iomanip>
-#include <iostream>
-#include <random>
-
 #define DECIMAL_PRECISION 2
 
 namespace GraphicsTools {
