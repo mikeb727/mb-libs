@@ -1,5 +1,5 @@
 GFX_TARGETS=$(addprefix libmbgfx, .so .a)
-GFX_OBJ=$(addsuffix .o, camera colors gl errors mbgfx renderObject scene shader texture window)
+GFX_OBJ=$(addsuffix .o, camera colors gl font light errors mbgfx renderObject scene shader texture window)
 GFX_OBJS=$(addprefix $(BIN)/shared/, $(GFX_OBJ))
 GFX_OBJS_STATIC=$(addprefix $(BIN)/static/, $(GFX_OBJ))
 

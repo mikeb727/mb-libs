@@ -36,6 +36,7 @@ public:
   bool isReady() const { return _ready; };
   int size() const { return _size; };
 };
+
 } // namespace GraphicsTools
 
 #endif
