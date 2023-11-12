@@ -7,7 +7,6 @@
 
 // include glad for OpenGL and GLX before any of our headers!
 #include "glad/gl.h"
-#include "glad/glx.h"
 
 #include "camera.h"
 #include "colors.h"
@@ -29,26 +28,12 @@
 
 #include <GLFW/glfw3.h>
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-
-// for creating X11 windows with GLX
-// works, but to be completed at a later date
-#define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
-#define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
-// function pointer; takes (Display*, GLXFBConfig, GLXContext, Bool, const int*)
-// as args and returns GLX context
-typedef GLXContext (*glXCreateContextAttribsARBProc)(Display *, GLXFBConfig,
-                                                     GLXContext, Bool,
-                                                     const int *);
-
 namespace GraphicsTools {
 
 enum GraphicsMode { Glfw, Glx };
 
 // library setup/teardown
 int InitGraphics();
-int InitForGlx();
 int CloseGraphics();
 
 // utility; transform a number x from [a1, a2] to [b1, b2]

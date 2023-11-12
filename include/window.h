@@ -14,19 +14,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-
 #include "glad/gl.h"
-#include "glad/glx.h"
-
-#define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
-#define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
-
-typedef GLXContext (*glXCreateContextAttribsARBProc)(Display *, GLXFBConfig,
-                                                     GLXContext, Bool,
-                                                     const int *);
 
 namespace GraphicsTools {
 
@@ -117,35 +105,6 @@ public:
 private:
   GLFWwindow *_win;
   static void resizeFramebufferCallback(GLFWwindow *win, int w, int h);
-};
-
-class WindowGlx : public WindowBase {
-public:
-  WindowGlx(std::string title, int width, int height, int argc, char **argv,
-            bool isRoot = false);
-  ~WindowGlx();
-
-  // getters
-  ::Window glxWindow() const { return _win; };
-  ::Display* x11Display() const { return _disp; };
-  // setters
-
-  // clear, then update to show graphics
-  // keep clear, but make update responsibility of attached scene
-  void clear();
-  void update();
-  bool shouldClose() const { return false; };
-  void setShouldClose(int close) { ; };
-  void reshape();
-
-  // load, then draw to show an image
-  // use our texture object from the opengl tutorial
-  void drawImage(void *, int, int, int);
-
-private:
-  ::Window _win;
-  ::Display *_disp;
-  GLXContext _context;
 };
 
 } // namespace GraphicsTools
