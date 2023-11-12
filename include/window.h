@@ -1,6 +1,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include "colors.h"
 #include "errors.h"
 #include "scene.h"
 
@@ -13,17 +14,29 @@
 
 #include <GLFW/glfw3.h>
 
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
+#include "glad/gl.h"
+#include "glad/glx.h"
+
+#define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
+
+typedef GLXContext (*glXCreateContextAttribsARBProc)(Display *, GLXFBConfig,
+                                                     GLXContext, Bool,
+                                                     const int *);
+
 namespace GraphicsTools {
 
-class Window {
+class WindowBase {
 public:
-  Window(std::string title, int width, int height);
-  ~Window();
+  virtual ~WindowBase() = 0;
 
   // getters
   int width() const { return _width; };
   int height() const { return _height; };
-  GLFWwindow *glfwWindow() const { return _win; };
   void *userPointer(std::string id) const { return _userPointers.at(id); };
   bool ready() const { return _ready; };
   ColorRgba clearColor() const { return _clearColor; };
@@ -34,12 +47,12 @@ public:
 
   // clear, then update to show graphics
   // keep clear, but make update responsibility of attached scene
-  void clear();
-  void update();
-  bool shouldClose() const { return glfwWindowShouldClose(_win); };
-  void setShouldClose(int close) { glfwSetWindowShouldClose(_win, close); };
+  virtual void clear() = 0;
+  virtual void update() = 0;
+  virtual bool shouldClose() const = 0;
+  virtual void setShouldClose(int close) = 0;
 
-  // drawing functions
+  // drawing functions. these are the same for both GLFW and X11
   // make scene responsible for these
   void drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2,
                  float y2, float thickness);
@@ -61,7 +74,7 @@ public:
 
   // load, then draw to show an image
   // use our texture object from the opengl tutorial
-  void drawImage(void *, int, int, int);
+  // virtual void drawImage(void *, int, int, int) = 0;
 
   void attachScene(Scene *sc) {
     _sc = sc;
@@ -69,17 +82,72 @@ public:
   };
   Scene *activeScene() const { return _sc; };
 
-private:
+protected:
+  WindowBase(std::string title, int width, int height, ColorRgba clearColor);
   std::string _title;
   int _width, _height;
-  GLFWwindow *_win;
   Scene *_sc;
   std::map<std::string, void *> _userPointers; // ??
   bool _ready;
   ColorRgba _clearColor;
+};
 
+// GLFW window
+class Window : public WindowBase {
+public:
+  Window(std::string title, int width, int height);
+  ~Window();
+
+  // getters
+  GLFWwindow *glfwWindow() const { return _win; };
+
+  // setters defined in WindowBase
+
+  // clear, then update to show graphics
+  // keep clear, but make update responsibility of attached scene
+  void clear();
+  void update();
+  bool shouldClose() const { return glfwWindowShouldClose(_win); };
+  void setShouldClose(int close) { glfwSetWindowShouldClose(_win, close); };
+
+  // load, then draw to show an image
+  // use our texture object from the opengl tutorial
+  void drawImage(void *, int, int, int);
+
+private:
+  GLFWwindow *_win;
   static void resizeFramebufferCallback(GLFWwindow *win, int w, int h);
 };
+
+class WindowGlx : public WindowBase {
+public:
+  WindowGlx(std::string title, int width, int height, int argc, char **argv,
+            bool isRoot = false);
+  ~WindowGlx();
+
+  // getters
+  ::Window glxWindow() const { return _win; };
+  ::Display* x11Display() const { return _disp; };
+  // setters
+
+  // clear, then update to show graphics
+  // keep clear, but make update responsibility of attached scene
+  void clear();
+  void update();
+  bool shouldClose() const { return false; };
+  void setShouldClose(int close) { ; };
+  void reshape();
+
+  // load, then draw to show an image
+  // use our texture object from the opengl tutorial
+  void drawImage(void *, int, int, int);
+
+private:
+  ::Window _win;
+  ::Display *_disp;
+  GLXContext _context;
+};
+
 } // namespace GraphicsTools
 
 #endif
