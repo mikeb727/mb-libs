@@ -10,6 +10,18 @@ const int VAO_3D_DATA_WIDTH = 8;
 
 const int CIRCLE_2D_RESOLUTION = 100;
 
+#ifdef COMPILE_TIME_SHADERS
+const char *vs2 =
+
+#include "../assets/2d_vs_ct.glsl"
+
+    ;
+const char *fs2 =
+
+#include "../assets/2d_fs_ct.glsl"
+    ;
+#endif
+
 namespace GraphicsTools {
 
 Scene::Scene()
@@ -48,8 +60,14 @@ Scene::Scene()
   glBindVertexArray(0);
 
   _depthShader = NULL;
+
+#ifdef COMPILE_TIME_SHADERS
+  _shader2 = new ShaderProgram(vs2, fs2, true);
+#else
   _shader2 = new ShaderProgram("assets/2d_vs.glsl", "assets/2d_fs.glsl");
+#endif
   _shader2Alt = NULL;
+
 }
 
 Scene::~Scene() {
@@ -236,15 +254,45 @@ void Scene::drawCircle2D(ColorRgba color, float x, float y, float r) {
 
 void Scene::drawCircleOutline2D(GraphicsTools::ColorRgba color, float x,
                                 float y, float r, float thickness) {
-  std::vector<float> verts_v;
-  for (int i = 0; i < CIRCLE_2D_RESOLUTION + 1; ++i) {
+  std::vector<glm::vec3> verts_v;
+  std::vector<unsigned int> indices_v;
+  // inner ring verts
+  for (int i = 0; i < CIRCLE_2D_RESOLUTION; ++i) {
     float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
-    verts_v.push_back(x + ((r - 0.25f * thickness) * cos(angle)));
-    verts_v.push_back(y + ((r - 0.25f * thickness) * sin(angle)));
-    verts_v.push_back(0.0f);
-    verts_v.push_back(0.0f);
+    verts_v.push_back(glm::vec3(x + ((r - thickness) * cos(angle)),
+                                y + ((r - thickness) * sin(angle)), 0));
   }
-  float *verts = verts_v.data();
+  // outer ring verts
+  for (int i = 0; i < CIRCLE_2D_RESOLUTION; ++i) {
+    float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
+    verts_v.push_back(glm::vec3(x + (r * cos(angle)), y + (r * sin(angle)), 0));
+  }
+
+  // quads - start with inner ring
+  for (int i = 0; i < CIRCLE_2D_RESOLUTION; ++i) {
+    int quadIndexA = (i % CIRCLE_2D_RESOLUTION);
+    int quadIndexB = (i % CIRCLE_2D_RESOLUTION) + CIRCLE_2D_RESOLUTION;
+    int quadIndexC = ((i + 1) % CIRCLE_2D_RESOLUTION) + CIRCLE_2D_RESOLUTION;
+    int quadIndexD = ((i + 1) % CIRCLE_2D_RESOLUTION);
+    indices_v.push_back(quadIndexA);
+    indices_v.push_back(quadIndexB);
+    indices_v.push_back(quadIndexC);
+    indices_v.push_back(quadIndexC);
+    indices_v.push_back(quadIndexD);
+    indices_v.push_back(quadIndexA);
+  }
+
+  std::vector<float> v_data;
+
+  for (unsigned int i : indices_v) {
+    v_data.push_back(verts_v.at(i).x);
+    v_data.push_back(verts_v.at(i).y);
+    v_data.push_back(verts_v.at(i).x);
+    v_data.push_back(verts_v.at(i).y);
+  }
+
+  float *verts = v_data.data();
+
   _shader2->use();
   _shader2->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
@@ -253,10 +301,9 @@ void Scene::drawCircleOutline2D(GraphicsTools::ColorRgba color, float x,
   _shader2->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
   glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, v_data.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glLineWidth(thickness);
-  glDrawArrays(GL_LINE_STRIP, 0, verts_v.size() / 4);
+  glDrawArrays(GL_TRIANGLES, 0, v_data.size() / 4);
   _depth += 1.0f;
 }
 

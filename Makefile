@@ -22,6 +22,7 @@ TEST_LFLAGS=-Llib -lmbgfx -lGL -lglfw -lfreetype
 
 IFLAGS=$(addprefix -I, include /usr/include/freetype2)
 DFLAGS=-g -O0
+DFLAGS2=-DCOMPILE_TIME_SHADERS
 
 DESTDIR=
 
@@ -78,19 +79,19 @@ $(LIB)/$(LIB)mbgfx.a: $(GFX_OBJS_STATIC)
 
 $(BIN)/shared/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DFLAGS) $(IFLAGS) -fPIC -c $< -o $@
+	$(CPP) -std=c++17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -fPIC -c $< -o $@
 
 $(BIN)/shared/%.o: $(SRC)/%.c
 	mkdir -p $(dir $@)
-	$(C) -std=c17 $(DFLAGS) $(IFLAGS) -fPIC -c $< -o $@
+	$(C) -std=c17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -fPIC -c $< -o $@
 
 $(BIN)/static/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DFLAGS) $(IFLAGS) -c $< -o $@
+	$(CPP) -std=c++17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -c $< -o $@
 
 $(BIN)/static/%.o: $(SRC)/%.c
 	mkdir -p $(dir $@)
-	$(C) -std=c17 $(DFLAGS) $(IFLAGS) -c $< -o $@
+	$(C) -std=c17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -c $< -o $@
 
 $(BIN)/test/%.o: $(TEST)/%.cpp
 	mkdir -p $(dir $@)

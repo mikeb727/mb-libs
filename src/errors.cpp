@@ -17,12 +17,12 @@ unsigned int getGlErrors_(const char *file, int line) {
     case GL_INVALID_OPERATION:
       errString = "invalid operation";
       break;
-    case GL_STACK_OVERFLOW:
-      errString = "stack overflow";
-      break;
-    case GL_STACK_UNDERFLOW:
-      errString = "stack underflow";
-      break;
+    // case GL_STACK_OVERFLOW:
+    //   errString = "stack overflow";
+    //   break;
+    // case GL_STACK_UNDERFLOW:
+    //   errString = "stack underflow";
+    //   break;
     case GL_OUT_OF_MEMORY:
       errString = "out of memory";
       break;

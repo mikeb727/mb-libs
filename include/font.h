@@ -20,6 +20,7 @@ struct TextGlyph {
   int bearingX, bearingY;
   long charAdvance; // x distance to next glyph
 };
+// map ASCII characters to their glyphs
 typedef std::map<char, TextGlyph> charMap;
 
 class Font {
