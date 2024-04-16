@@ -1,5 +1,10 @@
 #include "colors.h"
 
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <random>
+
 #define DECIMAL_PRECISION 2
 
 namespace GraphicsTools {
@@ -74,26 +79,25 @@ ColorRgba hsv2rgb(ColorHsva in) {
 }
 
 ColorRgba randomColor() {
-  std::default_random_engine generator;
-  generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
+  std::default_random_engine rng;
+  rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
   std::uniform_real_distribution<float> hueDist(0, 360);
   std::normal_distribution<float> satDist(0.8, 0.2);
   std::normal_distribution<float> valDist(0.65, 0.1);
-  float hue = hueDist(generator);
-  float sat = satDist(generator);
-  float val = valDist(generator);
+  float hue = hueDist(rng);
+  float sat = satDist(rng);
+  float val = valDist(rng);
   std::cerr << "[mbgfx] random color hue " << hue << " sat " << sat << " val "
             << val << "\n";
-  ColorRgba intermediate = GraphicsTools::hsv2rgb(
+  return GraphicsTools::hsv2rgb(
       GraphicsTools::ColorHsva{hue, std::clamp<float>(sat, 0.0, 1.0),
                                std::clamp<float>(val, 0.0, 1.0), 1.0});
-  return ColorRgba{(intermediate.r), (intermediate.g), (intermediate.b), 1.0};
 }
 
-glm::vec4 colorToGlm(ColorRgba in) { return glm::vec4(in.r, in.g, in.b, in.a); }
+glm::vec4 colorToGlm(ColorRgba c) { return glm::vec4(c.r, c.g, c.b, c.a); }
 
-glm::vec4 colorToGlm(ColorHsva in) {
-  ColorRgba rgba = hsv2rgb(in);
+glm::vec4 colorToGlm(ColorHsva c) {
+  ColorRgba rgba = hsv2rgb(c);
   return glm::vec4(rgba.r, rgba.g, rgba.b, rgba.a);
 }
 
@@ -106,13 +110,15 @@ ColorRgba operator*(float m, ColorRgba c) {
 }
 
 std::ostream &operator<<(std::ostream &os, ColorRgba c) {
-  os << std::setiosflags(std::ios::fixed) << std::setprecision(DECIMAL_PRECISION);
+  os << std::setiosflags(std::ios::fixed)
+     << std::setprecision(DECIMAL_PRECISION);
   os << "r " << c.r << " g " << c.g << " b " << c.b << " a " << c.a;
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, ColorHsva c) {
-  os << std::setiosflags(std::ios::fixed) << std::setprecision(DECIMAL_PRECISION);
+  os << std::setiosflags(std::ios::fixed)
+     << std::setprecision(DECIMAL_PRECISION);
   os << "h " << c.h << " s " << c.s << " v " << c.v << " a " << c.a;
   return os;
 }

@@ -1,12 +1,8 @@
 #ifndef COLORS_H
 #define COLORS_H
 
-#include <algorithm>
-#include <chrono>
 #include <glm/glm.hpp>
-#include <iomanip>
 #include <iostream>
-#include <random>
 
 namespace GraphicsTools {
 
@@ -29,7 +25,8 @@ struct ColorHsva {
 namespace Colors {
 const ColorRgba Black = {0, 0, 0, 1};
 const ColorRgba Grey25 = {0.25, 0.25, 0.25, 1};
-const ColorRgba Grey = {0.75, 0.75, 0.75, 1};
+const ColorRgba Grey = {0.5, 0.5, 0.5, 1};
+const ColorRgba Grey75 = {0.75, 0.75, 0.75, 1};
 const ColorRgba White = {1, 1, 1, 1};
 const ColorRgba Red = {1, 0, 0, 1};
 const ColorRgba Blue = {0, 0, 1, 1};
@@ -39,14 +36,14 @@ const ColorRgba Yellow = {1, 1, 0, 1};
 
 // color operations
 ColorRgba blend(ColorRgba c1, float w1, ColorRgba c2, float w2);
-ColorRgba hsv2rgb(ColorHsva in);
+ColorRgba hsv2rgb(ColorHsva c);
 ColorRgba randomColor();
 ColorRgba operator*(ColorRgba c, float m);
 ColorRgba operator*(float m, ColorRgba c);
 
 // for use in shaders
-glm::vec4 colorToGlm(ColorRgba in);
-glm::vec4 colorToGlm(ColorHsva in);
+glm::vec4 colorToGlm(ColorRgba c);
+glm::vec4 colorToGlm(ColorHsva c);
 
 std::ostream &operator<<(std::ostream &os, ColorRgba c);
 std::ostream &operator<<(std::ostream &os, ColorHsva c);
