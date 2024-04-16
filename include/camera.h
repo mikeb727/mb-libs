@@ -2,18 +2,21 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <cmath>
-#include <iomanip>
 #include <iostream>
 
 // matrix math
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
+// glm now requires this flag to use vector rotation
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/gtx/string_cast.hpp> // debug; print matrices
 
 namespace GraphicsTools {
 
+// available camera projection types
+// undefined: default case; no functionality
 enum CameraProjType { Undefined, Perspective, Orthographic };
 
 class Camera {
@@ -25,9 +28,9 @@ public:
   // getters
   glm::vec3 pos() const { return _pos; };
   // local axes
-  glm::vec3 right() const { return _right; };
-  glm::vec3 forward() const { return _forward; };
-  glm::vec3 up() const { return _up; };
+  glm::vec3 localRight() const { return _right; };
+  glm::vec3 localForward() const { return _forward; };
+  glm::vec3 localUp() const { return _up; };
   float yaw() const { return _yaw; };
   float pitch() const { return _pitch; };
   float fov() const { return _fov; };
@@ -41,6 +44,7 @@ public:
   void setPos(glm::vec3 pos);
   void setYaw(float yaw);
   void setPitch(float pitch);
+  // also change projection type
   void setPerspective(float fov, float aspectRatio);
   void setOrtho(float width, float height);
   void setOrtho2(float width, float height);
@@ -49,6 +53,8 @@ public:
   void debugPrint(std::ostream &out = std::cerr,
                   bool printMatrices = false) const;
 
+  friend std::ostream &operator<<(std::ostream &os, const Camera &c);
+
 private:
   glm::vec3 _pos, _right, _forward, _up;
   glm::mat4 _view, _proj;
@@ -56,8 +62,10 @@ private:
   CameraProjType _projType;
   float _fov, _aspectRatio;
   float _yaw, _pitch;
-  // recompute transformation matrices after setting position
+  // recompute transformation matrices after setting position 
   void recalc();
+  // create debug output stream
+  void writeDebugStream(std::ostream &os) const;
 };
 
 } // namespace GraphicsTools

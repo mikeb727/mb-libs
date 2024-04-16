@@ -1,5 +1,8 @@
 #include "camera.h"
 
+#include <cmath>
+#include <iomanip>
+
 #define DECIMAL_PRECISION 2
 
 namespace GraphicsTools {
@@ -42,11 +45,11 @@ void Camera::setOrtho(float width, float height) {
 void Camera::setOrtho2(float width, float height) {
   // same projection matrix as 2D scene
   _projType = CameraProjType::Orthographic;
-  _proj =
-      glm::ortho(0.0f, _pos.x + width, 0.0f, _pos.y + height, -1000.0f, 1000.0f);
+  _proj = glm::ortho(0.0f, _pos.x + width, 0.0f, _pos.y + height, -1000.0f,
+                     1000.0f);
 };
 
-void Camera::debugPrint(std::ostream &out, bool printMatrices) const {
+void Camera::writeDebugStream(std::ostream &out) const {
   out << std::setiosflags(std::ios::fixed)
       << std::setprecision(DECIMAL_PRECISION);
   out << "camera\n";
@@ -69,10 +72,19 @@ void Camera::debugPrint(std::ostream &out, bool printMatrices) const {
       << "\n";
   out << "local z " << _up.x << " " << _up.y << " " << _up.z << "\n";
   out << "yaw " << _yaw << " pitch " << _pitch << "\n";
+}
+
+void Camera::debugPrint(std::ostream &out, bool printMatrices) const {
+  writeDebugStream(out);
   if (printMatrices) {
     out << "view matrix :\n" << glm::to_string(_view) << "\n";
     out << "projection matrix :\n" << glm::to_string(_proj) << "\n";
   }
+}
+
+std::ostream &operator<<(std::ostream &os, const Camera &c) {
+  c.writeDebugStream(os);
+  return os;
 }
 
 void Camera::recalc() {
