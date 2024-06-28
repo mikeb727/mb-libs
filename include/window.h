@@ -2,21 +2,23 @@
 #define WINDOW_H
 
 #include "colors.h"
-#include "errors.h"
 #include "scene.h"
 
-#include <algorithm>
-#include <chrono>
-#include <cmath>
-#include <iostream>
 #include <map>
-#include <random>
 
 #include <GLFW/glfw3.h>
 
-#include "glad/gl.h"
-
 namespace GraphicsTools {
+
+enum WindowType {
+  Null = 0x00,
+  AlwaysOnTop = 0x01,
+  NoDecoration = 0x02,
+  WindowedFullscreen = 0x04,
+  ScreensaverMode = AlwaysOnTop | NoDecoration | WindowedFullscreen,
+};
+
+WindowType operator|(WindowType lv, WindowType rv);
 
 class WindowBase {
 public:
@@ -37,6 +39,7 @@ public:
   // keep clear, but make update responsibility of attached scene
   virtual void clear() = 0;
   virtual void update() = 0;
+  virtual void getEvents() = 0;
   virtual bool shouldClose() const = 0;
   virtual void setShouldClose(int close) = 0;
 
@@ -45,20 +48,23 @@ public:
   void drawArrow(GraphicsTools::ColorRgba color, float x1, float y1, float x2,
                  float y2, float thickness);
   void drawRectangle(GraphicsTools::ColorRgba color, int x1, int y1, int x2,
-                     int y2);
-  void drawCircle(GraphicsTools::ColorRgba color, float x, float y, float r);
+                     int y2, float angle);
+  void drawCircle(GraphicsTools::ColorRgba color, float x, float y, float r,
+                  float angle, ShaderProgram *overrideShader = NULL);
   void drawCircleOutline(GraphicsTools::ColorRgba color, float x, float y,
-                         float r, float thickness);
+                         float angle, float r, float thickness);
   void drawCircleGradient(GraphicsTools::ColorRgba outer,
                           GraphicsTools::ColorRgba inner, int x, int y, int r);
   void drawText(std::string str, GraphicsTools::Font *font,
-                GraphicsTools::ColorRgba, int x, int y, int width,
+                GraphicsTools::ColorRgba, int x, int y, float angle, int width,
                 GraphicsTools::TextAlignModeH align =
                     GraphicsTools::TextAlignModeH::Left);
   void drawLine(GraphicsTools::ColorRgba color, int thickness, int x1, int y1,
                 int x2, int y2);
   void drawMultiLine(GraphicsTools::ColorRgba color, int thickness,
                      int numPoints, float *points);
+  void drawMultiArrow(GraphicsTools::ColorRgba color, float thickness,
+                      int numPoints, float *points);
 
   // load, then draw to show an image
   // use our texture object from the opengl tutorial
@@ -83,7 +89,8 @@ protected:
 // GLFW window
 class Window : public WindowBase {
 public:
-  Window(std::string title, int width, int height);
+  Window(std::string title, int width, int height,
+         WindowType windowFlags = WindowType::Null);
   ~Window();
 
   // getters
@@ -95,6 +102,9 @@ public:
   // keep clear, but make update responsibility of attached scene
   void clear();
   void update();
+  // separate function for polling events (previously buffer swap made this
+  // depend on vblank/refresh rate)
+  void getEvents();
   bool shouldClose() const { return glfwWindowShouldClose(_win); };
   void setShouldClose(int close) { glfwSetWindowShouldClose(_win, close); };
 
@@ -104,6 +114,8 @@ public:
 
 private:
   GLFWwindow *_win;
+  // tasks common to normal and screensaver windows
+  bool setupGlfwWindow();
   static void resizeFramebufferCallback(GLFWwindow *win, int w, int h);
 };
 

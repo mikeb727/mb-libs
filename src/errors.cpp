@@ -1,5 +1,8 @@
 #include "errors.h"
 
+#include "glad/gl.h"
+#include <string>
+
 namespace GraphicsTools {
 
 #define getGlErrors() getGlErrors_(__FILE__, __LINE__);

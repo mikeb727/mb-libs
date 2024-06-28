@@ -11,6 +11,9 @@
 #include <iostream>
 #include <vector>
 
+// glm now requires this flag to use vector rotation
+#define GLM_ENABLE_EXPERIMENTAL
+
 // experimental; for vector slerp (lerping cube normals)
 #include <glm/gtx/rotate_vector.hpp>
 const float CUBE_NORMAL_SLERP_FACTOR = 0.1f;

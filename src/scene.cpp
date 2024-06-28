@@ -8,7 +8,7 @@ const int VBO_2D_MAX_SIZE = 4000;
 const int VBO_3D_MAX_SIZE = 40000;
 const int VAO_3D_DATA_WIDTH = 8;
 
-const int CIRCLE_2D_RESOLUTION = 100;
+const int CIRCLE_2D_RESOLUTION = 96;
 
 #ifdef COMPILE_TIME_SHADERS
 const char *vs2 =
@@ -67,7 +67,6 @@ Scene::Scene()
   _shader2 = new ShaderProgram("assets/2d_vs.glsl", "assets/2d_fs.glsl");
 #endif
   _shader2Alt = NULL;
-
 }
 
 Scene::~Scene() {
@@ -167,40 +166,43 @@ void Scene::render() const {
 }
 
 void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
-                       float y0, float width,
-                       GraphicsTools::TextAlignModeH alignment,
-                       float drawScale) {
+                       float y0, float angle, float width,
+                       GraphicsTools::TextAlignModeH alignment, float drawScale,
+                       GraphicsTools::ShaderProgram *overrideShader) {
   glClear(GL_DEPTH_BUFFER_BIT);
-  _shader2->use();
-  _shader2->setUniform("color", glm::vec4(color.r, color.g, color.b, 1.0));
-  _shader2->setUniform("transform", _proj2);
+  GraphicsTools::ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  glm::mat4 modelMat = glm::translate(glm::vec3(x0, y0, 0.0f)) *
+                       glm::rotate(angle, glm::vec3(0.0f, 0.0f, 1.0f));
+  sh->use();
+  sh->setUniform("color", glm::vec4(color.r, color.g, color.b, 1.0));
+  sh->setUniform("transform", _proj2 * modelMat);
   glActiveTexture(GL_TEXTURE0);
-  _shader2->setUniform("tex", 0);
-  _shader2->setUniform("useTex", 1);
-  _shader2->setUniform("drawDepth", _depth);
+  sh->setUniform("tex", 0);
+  sh->setUniform("useTex", 1);
+  sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
 
-  float x = x0, y = y0;
+  float x = 0, y = 0;
   // two iterators; one for drawing glyphs left to right, one for computing x
   // offset for center- and right-aligned text
   std::string::const_iterator ch;
   for (ch = str.begin(); ch != str.end(); ++ch) {
-    if (x == x0 && alignment == Right) {
+    if (x == 0 && alignment == Right) {
       std::string::const_iterator chAlignCalcH = ch;
-      while (x > (x0 - width) && ch != str.end()) {
+      while (x > (-width) && ch != str.end()) {
         x -= (font.glyph(*ch).charAdvance >> 6) * drawScale;
         std::cerr << x << std::endl;
         ++chAlignCalcH;
       }
     }
     if (*ch == '\n') {
-      x = x0;
+      x = 0;
       y -= font.size() * drawScale;
       continue;
     }
     TextGlyph tch(font.glyph(*ch));
-    if ((width != -1) && ((x + tch.bearingX + tch.sizeX - x0) > width)) {
-      x = x0;
+    if ((width != -1) && ((x + tch.bearingX + tch.sizeX - 0) > width)) {
+      x = 0;
       y -= font.size() * drawScale;
     }
     float quadX = (x + tch.bearingX) * drawScale;
@@ -224,26 +226,30 @@ void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
   _depth += 1.0f;
 }
 
-void Scene::drawCircle2D(ColorRgba color, float x, float y, float r) {
+void Scene::drawCircle2D(ColorRgba color, float x, float y, float r,
+                         float angle, ShaderProgram *overrideShader) {
   std::vector<float> verts_v;
-  verts_v.push_back(x);
-  verts_v.push_back(y);
+  verts_v.push_back(0.0f);
+  verts_v.push_back(0.0f);
   verts_v.push_back(0.0f);
   verts_v.push_back(0.0f);
   for (int i = 0; i < CIRCLE_2D_RESOLUTION + 1; ++i) {
-    float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
-    verts_v.push_back(x + (r * cos(angle)));
-    verts_v.push_back(y + (r * sin(angle)));
+    float theta = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
+    verts_v.push_back((r * cos(theta)));
+    verts_v.push_back((r * sin(theta)));
     verts_v.push_back(0.0f);
     verts_v.push_back(0.0f);
   }
   float *verts = verts_v.data();
-  _shader2->use();
-  _shader2->setUniform("transform", _proj2);
+  ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  glm::mat4 modelMat = glm::translate(glm::vec3(x, y, 0.0f)) *
+                       glm::rotate(angle, glm::vec3(0.0f, 0.0f, 1.0f));
+  sh->use();
+  sh->setUniform("transform", _proj2 * modelMat);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _shader2->setUniform("color", shaderColor);
-  _shader2->setUniform("useTex", 0);
-  _shader2->setUniform("drawDepth", _depth);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
   glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
@@ -253,19 +259,20 @@ void Scene::drawCircle2D(ColorRgba color, float x, float y, float r) {
 }
 
 void Scene::drawCircleOutline2D(GraphicsTools::ColorRgba color, float x,
-                                float y, float r, float thickness) {
+                                float y, float r, float angle, float thickness,
+                                GraphicsTools::ShaderProgram *overrideShader) {
   std::vector<glm::vec3> verts_v;
   std::vector<unsigned int> indices_v;
   // inner ring verts
   for (int i = 0; i < CIRCLE_2D_RESOLUTION; ++i) {
     float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
-    verts_v.push_back(glm::vec3(x + ((r - thickness) * cos(angle)),
-                                y + ((r - thickness) * sin(angle)), 0));
+    verts_v.push_back(glm::vec3(((r - thickness) * cos(angle)),
+                                ((r - thickness) * sin(angle)), 0));
   }
   // outer ring verts
   for (int i = 0; i < CIRCLE_2D_RESOLUTION; ++i) {
     float angle = (360.0f * i / (float)CIRCLE_2D_RESOLUTION) * (M_PI / 180.0f);
-    verts_v.push_back(glm::vec3(x + (r * cos(angle)), y + (r * sin(angle)), 0));
+    verts_v.push_back(glm::vec3((r * cos(angle)), (r * sin(angle)), 0));
   }
 
   // quads - start with inner ring
@@ -293,12 +300,15 @@ void Scene::drawCircleOutline2D(GraphicsTools::ColorRgba color, float x,
 
   float *verts = v_data.data();
 
-  _shader2->use();
-  _shader2->setUniform("transform", _proj2);
+  ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  glm::mat4 modelMat = glm::translate(glm::vec3(x, y, 0.0f)) *
+                       glm::rotate(angle, glm::vec3(0.0f, 0.0f, 1.0f));
+  sh->use();
+  sh->setUniform("transform", _proj2 * modelMat);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _shader2->setUniform("color", shaderColor);
-  _shader2->setUniform("useTex", 0);
-  _shader2->setUniform("drawDepth", _depth);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
   glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, v_data.size() * sizeof(float), verts);
@@ -308,17 +318,22 @@ void Scene::drawCircleOutline2D(GraphicsTools::ColorRgba color, float x,
 }
 
 void Scene::drawRectangle2D(ColorRgba color, float x1, float y1, float x2,
-                            float y2) {
+                            float y2, float angle,
+                            GraphicsTools::ShaderProgram *overrideShader) {
   std::vector<float> verts_v = {x1, y1, 0.0f, 0.0f, x2, y1, 0.0f, 0.0f,
                                 x2, y2, 0.0f, 0.0f, x2, y2, 0.0f, 0.0f,
                                 x1, y2, 0.0f, 0.0f, x1, y1, 0.0f, 0.0f};
   float *verts = verts_v.data();
-  _shader2->use();
-  _shader2->setUniform("transform", _proj2);
+
+  ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  glm::mat4 modelMat = glm::translate(glm::vec3(x1, y1, 0.0f)) *
+                       glm::rotate(angle, glm::vec3(0.0f, 0.0f, 1.0f));
+  sh->use();
+  sh->setUniform("transform", _proj2 * modelMat);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _shader2->setUniform("color", shaderColor);
-  _shader2->setUniform("useTex", 0);
-  _shader2->setUniform("drawDepth", _depth);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
   glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
@@ -328,56 +343,180 @@ void Scene::drawRectangle2D(ColorRgba color, float x1, float y1, float x2,
 }
 
 void Scene::drawLine2D(ColorRgba color, float thickness, float x1, float y1,
-                       float x2, float y2) {
-  std::vector<float> verts_v = {x1, y1, 0.0f, 0.0f, x2, y2, 0.0f, 0.0f};
+                       float x2, float y2,
+                       GraphicsTools::ShaderProgram *overrideShader) {
+  using std::sin, std::cos, std::atan2;
+  float direction = atan2(y2 - y1, x2 - x1);
+  float perp = direction + (M_PI / 2.0);
+
+  std::vector<float> verts_v = {x1 + (0.5f * thickness * cos(perp)),
+                                y1 + (0.5f * thickness * sin(perp)),
+                                0,
+                                0,
+                                x1 - (0.5f * thickness * cos(perp)),
+                                y1 - (0.5f * thickness * sin(perp)),
+                                0,
+                                0,
+                                x2 - (0.5f * thickness * cos(perp)),
+                                y2 - (0.5f * thickness * sin(perp)),
+                                0,
+                                0,
+                                x2 - (0.5f * thickness * cos(perp)),
+                                y2 - (0.5f * thickness * sin(perp)),
+                                0,
+                                0,
+                                x2 + (0.5f * thickness * cos(perp)),
+                                y2 + (0.5f * thickness * sin(perp)),
+                                0,
+                                0,
+                                x1 + (0.5f * thickness * cos(perp)),
+                                y1 + (0.5f * thickness * sin(perp)),
+                                0,
+                                0};
   float *verts = verts_v.data();
-  _shader2->use();
-  _shader2->setUniform("transform", _proj2);
+  GraphicsTools::ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  sh->use();
+  sh->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _shader2->setUniform("color", shaderColor);
-  _shader2->setUniform("useTex", 0);
-  _shader2->setUniform("drawDepth", _depth);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
   glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
   glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glLineWidth(thickness);
-  glDrawArrays(GL_LINES, 0, verts_v.size() / 4);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
   _depth += 1.0f;
 }
 
 void Scene::drawMultiLine2D(GraphicsTools::ColorRgba color, float thickness,
-                            int numPoints, float *points) {
-  std::vector<float> verts_v;
-  for (int v = 0; v < numPoints; ++v) {
-    verts_v.push_back(points[2 * v]);
-    verts_v.push_back(points[2 * v + 1]);
-    verts_v.push_back(0.0f);
-    verts_v.push_back(0.0f);
+                            int numPoints, float *points,
+                            GraphicsTools::ShaderProgram *overrideShader) {
+  if (numPoints == 2) {
+    drawLine2D(color, thickness, points[0], points[1], points[2], points[3]);
+    return;
   }
-  _shader2->use();
-  _shader2->setUniform("transform", _proj2);
+  std::vector<float> verts_v;
+  genMultiLine2D(verts_v, thickness, numPoints, points);
+  float *verts = verts_v.data();
+
+  GraphicsTools::ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  sh->use();
+  sh->setUniform("transform", _proj2);
   glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _shader2->setUniform("color", shaderColor);
-  _shader2->setUniform("useTex", 0);
-  _shader2->setUniform("drawDepth", _depth);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
   glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float),
-                  verts_v.data());
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glLineWidth(thickness);
-  glDrawArrays(GL_LINE_STRIP, 0, verts_v.size() / 4);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
   _depth += 1.0f;
 }
 
 void Scene::drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1,
-                        float x2, float y2, float thickness) {
+                        float x2, float y2, float thickness,
+                        GraphicsTools::ShaderProgram *overrideShader) {
   using std::sin, std::cos, std::atan2;
   float direction = atan2(y2 - y1, x2 - x1);
   float perp = direction + (M_PI / 2.0);
   float headHeight = sqrt(3) * thickness;
-  std::vector<float> verts_v = {
+  std::vector<float> verts_v;
+  genArrow2D(verts_v, x1, y1, x2, y2, thickness);
+  float *verts = verts_v.data();
+
+  GraphicsTools::ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  sh->use();
+  sh->setUniform("transform", _proj2);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+void Scene::drawMultiArrow2D(GraphicsTools::ColorRgba color, float thickness,
+                             int numPoints, float *points,
+                             GraphicsTools::ShaderProgram *overrideShader) {
+
+  if (numPoints == 2) {
+    drawArrow2D(color, thickness, points[0], points[1], points[2], points[3]);
+    return;
+  }
+  std::vector<float> verts_v;
+  genMultiLine2D(verts_v, thickness, numPoints - 1, points);
+  genArrow2D(verts_v, points[(2 * numPoints) - 4], points[(2 * numPoints) - 3],
+           points[(2 * numPoints) - 2], points[(2 * numPoints) - 1], thickness);
+
+  float *verts = verts_v.data();
+
+  GraphicsTools::ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
+  sh->use();
+  sh->setUniform("transform", _proj2);
+  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
+  sh->setUniform("color", shaderColor);
+  sh->setUniform("useTex", 0);
+  sh->setUniform("drawDepth", _depth);
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+// draw to entire window using alternative shader
+void Scene::drawAltShader2D() {
+  _shader2Alt->use();
+  _shader2Alt->setUniform("transform", _proj2);
+  std::vector<float> verts_v = {0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                (float)_windowWidth,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                (float)_windowWidth,
+                                (float)_windowHeight,
+                                0.0f,
+                                0.0f,
+                                (float)_windowWidth,
+                                (float)_windowHeight,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                (float)_windowHeight,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f};
+  float *verts = verts_v.data();
+
+  glBindVertexArray(_vao2);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
+  _depth += 1.0f;
+}
+
+void Scene::genArrow2D(std::vector<float> &verts_v, float x1, float y1, float x2,
+                     float y2, float thickness) {
+  using std::sin, std::cos, std::atan2;
+  float direction = atan2(y2 - y1, x2 - x1);
+  float perp = direction + (M_PI / 2.0);
+  float headHeight = sqrt(3) * thickness;
+  std::vector<float> arrowVerts = {
       x1 + (0.5f * thickness * cos(perp)),
       y1 + (0.5f * thickness * sin(perp)),
       0,
@@ -415,56 +554,111 @@ void Scene::drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1,
       0,
       0,
   };
-  float *verts = verts_v.data();
-  _shader2->use();
-  _shader2->setUniform("transform", _proj2);
-  glm::vec4 shaderColor(color.r, color.g, color.b, color.a);
-  _shader2->setUniform("color", shaderColor);
-  _shader2->setUniform("useTex", 0);
-  _shader2->setUniform("drawDepth", _depth);
-  glBindVertexArray(_vao2);
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
-  _depth += 1.0f;
+  verts_v.insert(verts_v.end(), arrowVerts.begin(), arrowVerts.end());
 }
 
-void Scene::drawAltShader2D() {
-  _shader2Alt->use();
-  _shader2->setUniform("transform", _proj2);
-  std::vector<float> verts_v = {0.0f,
-                                0.0f,
-                                0.0f,
-                                0.0f,
-                                (float)_windowWidth,
-                                0.0f,
-                                0.0f,
-                                0.0f,
-                                (float)_windowWidth,
-                                (float)_windowHeight,
-                                0.0f,
-                                0.0f,
-                                (float)_windowWidth,
-                                (float)_windowHeight,
-                                0.0f,
-                                0.0f,
-                                0.0f,
-                                (float)_windowHeight,
-                                0.0f,
-                                0.0f,
-                                0.0f,
-                                0.0f,
-                                0.0f,
-                                0.0f};
-  float *verts = verts_v.data();
+void Scene::genMultiLine2D(std::vector<float> &verts_v, float thickness,
+                         int numPoints, float *points) {
+  float nearTrunc, farTrunc = 0;
+  // generate verts per each pair of adjacent points
+  for (int p = 0; p < numPoints - 1; ++p) {
+    using std::sin, std::cos, std::atan2;
+    float x0, y0, x1, y1, x2, y2, nextAngle;
+    nextAngle = 0;
+    x0 = points[(2 * p)];
+    y0 = points[(2 * p) + 1];
+    x1 = points[(2 * p) + 2];
+    y1 = points[(2 * p) + 3];
+    float direction = atan2(y1 - y0, x1 - x0);
+    float perp = direction + (M_PI / 2.0);
+    if (p + 2 < numPoints) {
+      x2 = points[(2 * p) + 4], y2 = points[(2 * p) + 5];
+      nextAngle = atan2(y2 - y1, x2 - x1) - direction;
+      farTrunc = fabs((0.5 * thickness) * std::tan(nextAngle / 2));
+    }
+    verts_v.push_back(x0 + (nearTrunc * cos(direction)) +
+                      (0.5f * thickness * cos(perp)));
+    verts_v.push_back(y0 + (nearTrunc * sin(direction)) +
+                      (0.5f * thickness * sin(perp)));
+    verts_v.push_back(0);
+    verts_v.push_back(0);
+    verts_v.push_back(x0 + (nearTrunc * cos(direction)) -
+                      (0.5f * thickness * cos(perp)));
+    verts_v.push_back(y0 + (nearTrunc * sin(direction)) -
+                      (0.5f * thickness * sin(perp)));
+    verts_v.push_back(0);
+    verts_v.push_back(0);
+    verts_v.push_back(x1 - (farTrunc * cos(direction)) -
+                      (0.5f * thickness * cos(perp)));
+    verts_v.push_back(y1 - (farTrunc * sin(direction)) -
+                      (0.5f * thickness * sin(perp)));
+    verts_v.push_back(0);
+    verts_v.push_back(0);
+    verts_v.push_back(x1 - (farTrunc * cos(direction)) -
+                      (0.5f * thickness * cos(perp)));
+    verts_v.push_back(y1 - (farTrunc * sin(direction)) -
+                      (0.5f * thickness * sin(perp)));
+    verts_v.push_back(0);
+    verts_v.push_back(0);
+    verts_v.push_back(x1 - (farTrunc * cos(direction)) +
+                      (0.5f * thickness * cos(perp)));
+    verts_v.push_back(y1 - (farTrunc * sin(direction)) +
+                      (0.5f * thickness * sin(perp)));
+    verts_v.push_back(0);
+    verts_v.push_back(0);
+    verts_v.push_back(x0 + (nearTrunc * cos(direction)) +
+                      (0.5f * thickness * cos(perp)));
+    verts_v.push_back(y0 + (nearTrunc * sin(direction)) +
+                      (0.5f * thickness * sin(perp)));
+    verts_v.push_back(0);
+    verts_v.push_back(0);
+    if (p + 2 < numPoints) {
+      // counterclockwise bend triangle fill
+      float nextDirection = atan2(y2 - y1, x2 - x1);
+      float nextPerp = nextDirection + (M_PI / 2.0);
 
-  glBindVertexArray(_vao2);
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, verts_v.size() * sizeof(float), verts);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glDrawArrays(GL_TRIANGLES, 0, verts_v.size() / 4);
-  _depth += 1.0f;
+      if (nextAngle > 0) {
+        verts_v.push_back(x1 - (farTrunc * cos(direction)) -
+                          (0.5f * thickness * cos(perp)));
+        verts_v.push_back(y1 - (farTrunc * sin(direction)) -
+                          (0.5f * thickness * sin(perp)));
+        verts_v.push_back(0);
+        verts_v.push_back(0);
+        verts_v.push_back(x1 + (farTrunc * cos(nextDirection)) -
+                          (0.5f * thickness * cos(nextPerp)));
+        verts_v.push_back(y1 + (farTrunc * sin(nextDirection)) -
+                          (0.5f * thickness * sin(nextPerp)));
+        verts_v.push_back(0);
+        verts_v.push_back(0);
+        verts_v.push_back(x1 - (farTrunc * cos(direction)) +
+                          (0.5f * thickness * cos(perp)));
+        verts_v.push_back(y1 - (farTrunc * sin(direction)) +
+                          (0.5f * thickness * sin(perp)));
+        verts_v.push_back(0);
+        verts_v.push_back(0);
+      } else if (nextAngle < 0) {
+        verts_v.push_back(x1 - (farTrunc * cos(direction)) -
+                          (0.5f * thickness * cos(perp)));
+        verts_v.push_back(y1 - (farTrunc * sin(direction)) -
+                          (0.5f * thickness * sin(perp)));
+        verts_v.push_back(0);
+        verts_v.push_back(0);
+        verts_v.push_back(x1 + (farTrunc * cos(nextDirection)) +
+                          (0.5f * thickness * cos(nextPerp)));
+        verts_v.push_back(y1 + (farTrunc * sin(nextDirection)) +
+                          (0.5f * thickness * sin(nextPerp)));
+        verts_v.push_back(0);
+        verts_v.push_back(0);
+        verts_v.push_back(x1 - (farTrunc * cos(direction)) +
+                          (0.5f * thickness * cos(perp)));
+        verts_v.push_back(y1 - (farTrunc * sin(direction)) +
+                          (0.5f * thickness * sin(perp)));
+        verts_v.push_back(0);
+        verts_v.push_back(0);
+      }
+    }
+    nearTrunc = farTrunc;
+  }
 }
 
 } // namespace GraphicsTools

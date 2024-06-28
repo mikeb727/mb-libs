@@ -45,20 +45,30 @@ public:
   // 2D drawing
   void drawText2D(GraphicsTools::Font font, std::string text,
                   GraphicsTools::ColorRgba textColor, float x0, float y0,
-                  float width, GraphicsTools::TextAlignModeH alignment,
-                  float scale);
-  void drawCircle2D(GraphicsTools::ColorRgba color, float x, float y, float r);
+                  float angle, float width,
+                  GraphicsTools::TextAlignModeH alignment, float scale,
+                  GraphicsTools::ShaderProgram *overrideShader = NULL);
+  void drawCircle2D(GraphicsTools::ColorRgba color, float x, float y, float r,
+                    float angle, ShaderProgram *overrideShader = NULL);
   void drawCircleOutline2D(GraphicsTools::ColorRgba color, float x, float y,
-                           float r, float thickness);
+                           float r, float angle, float thickness,
+                           GraphicsTools::ShaderProgram *overrideShader = NULL);
   void drawRectangle2D(GraphicsTools::ColorRgba color, float x1, float y1,
-                       float x2, float y2);
+                       float x2, float y2, float angle,
+                       GraphicsTools::ShaderProgram *overrideShader = NULL);
   void drawLine2D(GraphicsTools::ColorRgba color, float thickness, float x1,
-                  float y1, float x2, float y2);
+                  float y1, float x2, float y2,
+                  GraphicsTools::ShaderProgram *overrideShader = NULL);
   // specify points as [x1, y1, x2, y2, x3, y3, etc.]
   void drawMultiLine2D(GraphicsTools::ColorRgba color, float thickness,
-                       int numPoints, float *points);
+                       int numPoints, float *points,
+                       GraphicsTools::ShaderProgram *overrideShader = NULL);
   void drawArrow2D(GraphicsTools::ColorRgba color, float x1, float y1, float x2,
-                   float y2, float thickness);
+                   float y2, float thickness,
+                   GraphicsTools::ShaderProgram *overrideShader = NULL);
+  void drawMultiArrow2D(GraphicsTools::ColorRgba color, float thickness,
+                        int numPoints, float *points,
+                        GraphicsTools::ShaderProgram *overrideShader = NULL);
   void drawAltShader2D();
 
 private:
@@ -92,6 +102,12 @@ private:
 
   // for recomputing the text projection upon window resizing
   int _windowWidth, _windowHeight;
+
+  // helper function to generate line geometries
+  void genMultiLine2D(std::vector<float> &verts_v, float thickness, int numPoints,
+                    float *points);
+  void genArrow2D(std::vector<float> &verts_v, float x1, float y1, float x2,
+                float y2, float thickness);
 };
 
 } // namespace GraphicsTools

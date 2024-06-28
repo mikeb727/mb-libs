@@ -2,10 +2,6 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
-#include "glad/gl.h"
-
-#include <string>
-
 namespace GraphicsTools {
 
 #define getGlErrors() getGlErrors_(__FILE__, __LINE__);

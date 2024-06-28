@@ -20,17 +20,12 @@
 #include "texture.h"
 #include "window.h"
 
-#include <cmath>
-#include <iostream>
-#include <map>
-#include <string>
-#include <vector>
 
 #include <GLFW/glfw3.h>
 
 namespace GraphicsTools {
 
-enum GraphicsMode { Glfw, Glx };
+enum WindowMode { Glfw, Glx };
 
 // library setup/teardown
 int InitGraphics();

@@ -1,5 +1,9 @@
 #include "font.h"
 
+#include "glad/gl.h"
+
+#include <iostream>
+
 namespace GraphicsTools {
 
 Font::Font(std::string file, int fontSize) : _size(fontSize), _ready(false) {
@@ -52,13 +56,13 @@ Font::Font(std::string file, int fontSize) : _size(fontSize), _ready(false) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    TextGlyph ch = {glyphTex,
+    TextGlyph g = {glyphTex,
                     font->glyph->bitmap.width,
                     font->glyph->bitmap.rows,
                     font->glyph->bitmap_left,
                     font->glyph->bitmap_top,
                     font->glyph->advance.x};
-    _glyphs.emplace(c, ch);
+    _glyphs.emplace(c, g);
   }
   FT_Done_Face(font);
   FT_Done_FreeType(ft);

@@ -1,5 +1,7 @@
 #include "shader.h"
 
+namespace GraphicsTools {
+
 ShaderProgram::ShaderProgram(const char *vsPath, const char *fsPath) {
   std::string vsSourceInter, fsSourceInter;
   std::ifstream vsFile, fsFile;
@@ -106,3 +108,5 @@ void ShaderProgram::setUniform(const std::string &varName, glm::vec4 val) {
   glUniform4fv(glGetUniformLocation(_glId, varName.c_str()), 1,
                glm::value_ptr(val));
 }
+
+} // namespace GraphicsTools

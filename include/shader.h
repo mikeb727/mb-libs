@@ -11,6 +11,8 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
+namespace GraphicsTools {
+
 class ShaderProgram {
 
 public:
@@ -38,5 +40,7 @@ private:
   void compile(const char *vsSource, const char *fsSource, int &vsResult,
                int &fsResult, char vsLog[], char fsLog[]);
 };
+
+} // namespace GraphicsTools
 
 #endif

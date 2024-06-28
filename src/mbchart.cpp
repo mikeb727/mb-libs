@@ -186,7 +186,7 @@ void LineChart::draw() {
     if (_y > yAxisMin && _y < yAxisMax) {
       parentWindow->drawText(std::to_string(_y), labelFont,
                              GraphicsTools::Colors::White, drawPosX - 40,
-                             mapY(_y) - 10, 100);
+                             mapY(_y) - 10, 0, 100);
       parentWindow->drawLine(gridColor, 1, drawPosX, mapY(_y),
                              drawPosX + drawWidth, mapY(_y));
     }
@@ -195,7 +195,7 @@ void LineChart::draw() {
   // Data
   if (data->getCurrentSize() == 1) {
     parentWindow->drawCircle(dataColor, mapX(data->getPoint(0).x),
-                             mapY(data->getPoint(0).y), 8);
+                             mapY(data->getPoint(0).y), 0, 8);
   } else if (data->getCurrentSize() > 1) {
     std::vector<float> points = data->getPointCoords();
     for (int p = 0; p < points.size()/2; ++p) {

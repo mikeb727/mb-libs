@@ -1,11 +1,8 @@
 #ifndef FONT_H
 #define FONT_H
 
-#include "glad/gl.h"
-
 #include <map>
 #include <string>
-#include <iostream>
 
 #include <freetype/freetype.h>
 
