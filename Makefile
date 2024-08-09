@@ -8,14 +8,16 @@ CHART_OBJ=$(addsuffix .o, mbchart)
 CHART_OBJS=$(addprefix $(BIN)/shared/, $(CHART_OBJ))
 CHART_OBJS_STATIC=$(addprefix $(BIN)/static/, $(CHART_OBJ))
 
-CPP=clang++
-C=clang
-
 BIN=bin
 INC=include
 LIB=lib
 SRC=src
 TEST=test
+
+CTEST_IDS=$(addprefix c, 005)
+CTESTS=$(addprefix $(TEST)/test, $(CTEST_IDS))
+GTEST_IDS=$(addprefix g, 008)
+GTESTS=$(addprefix $(TEST)/test, $(GTEST_IDS))
 
 LINK=clang++
 TEST_LFLAGS=-Llib -lmbgfx -lGL -lglfw -lfreetype
@@ -24,12 +26,15 @@ IFLAGS=$(addprefix -I, include /usr/include/freetype2)
 DFLAGS=-g -O0
 DFLAGS2=-DCOMPILE_TIME_SHADERS
 
+CXX=clang++
+CXXFLAGS=$(TEST_LFLAGS) $(IFLAGS)
+C=clang
+
 DESTDIR=
 
-.PHONY: all shared static clean install
+.PHONY: all shared static clean install tests
 
 all: mbgfx mbchart
-tests: $(TEST)/test1 $(TEST)/test2 $(TEST)/test3 $(TEST)/test4 $(TEST)/test5 $(TEST)/test6
 
 install:
 	mkdir -p $(DESTDIR)/usr/lib/mb-libs/
@@ -44,42 +49,42 @@ install:
 mbgfx: $(addprefix $(LIB)/, $(GFX_TARGETS))
 mbchart: $(addprefix $(LIB)/, $(CHART_TARGETS))
 
-$(TEST)/test1: $(BIN)/test/test1.o mbgfx
-	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+tests: gtests ctests
 
-$(TEST)/test2: $(BIN)/test/test2.o mbgfx
-	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+gtests: $(GTESTS)	
+ctests: $(CTESTS)
 
-$(TEST)/test3: $(BIN)/test/test3.o mbgfx
-	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+$(GTESTS): $(BIN)/$(GTESTS).o mbgfx
+	echo $(GTESTS)
+	mkdir -p $(dir $@)
+	$(LINK) -o $@ $(DFLAGS) $(IFLAGS) $(TEST_LFLAGS) $<
 
-$(TEST)/test4: $(BIN)/test/test4.o mbgfx
-	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
-
-$(TEST)/test5: $(BIN)/test/test5.o mbgfx mbchart
-	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) -lmbchart $<
-
-$(TEST)/test6: $(BIN)/test/test6.o mbgfx
-	$(LINK) -o $@ $(DFLAGS) $(TEST_LFLAGS) $<
+$(CTESTS): $(BIN)/$(CTESTS).o mbgfx mbchart
+	mkdir -p $(dir $@)
+	$(LINK) -o $@ $(DFLAGS) $(IFLAGS) $(TEST_LFLAGS) -lmbchart $<
 
 clean:
-	rm -rf ./$(BIN) ./$(LIB)
+	rm -rf ./$(BIN) ./$(LIB) ./$(TEST)
 
 $(LIB)/$(LIB)mbgfx.so: $(GFX_OBJS)
 	mkdir -p $(LIB)
-	$(CPP) $(DFLAGS) -shared $(GFX_OBJS) -o $@
+	$(CXX) $(DFLAGS) -shared $(GFX_OBJS) -o $@
 
 $(LIB)/$(LIB)mbchart.so: $(CHART_OBJS)
 	mkdir -p $(LIB)
-	$(CPP) $(DFLAGS) -shared $(CHART_OBJS) -o $@
+	$(CXX) $(DFLAGS) -shared $(CHART_OBJS) -o $@
 
 $(LIB)/$(LIB)mbgfx.a: $(GFX_OBJS_STATIC)
 	mkdir -p $(LIB)
 	ar rcs $@ $^
 
+$(LIB)/$(LIB)mbchart.a: $(CHART_OBJS_STATIC)
+	mkdir -p $(LIB)
+	ar rcs $@ $^
+
 $(BIN)/shared/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -fPIC -c $< -o $@
+	$(CXX) -std=c++17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -fPIC -c $< -o $@
 
 $(BIN)/shared/%.o: $(SRC)/%.c
 	mkdir -p $(dir $@)
@@ -87,12 +92,16 @@ $(BIN)/shared/%.o: $(SRC)/%.c
 
 $(BIN)/static/%.o: $(SRC)/%.cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -c $< -o $@
+	$(CXX) -std=c++17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -c $< -o $@
 
 $(BIN)/static/%.o: $(SRC)/%.c
 	mkdir -p $(dir $@)
 	$(C) -std=c17 $(DFLAGS) $(DFLAGS2) $(IFLAGS) -c $< -o $@
 
-$(BIN)/test/%.o: $(TEST)/%.cpp
+$(BIN)/test/test$(GTEST_IDS).o: $(SRC)/$(TEST)/test$(GTEST_IDS).cpp
 	mkdir -p $(dir $@)
-	$(CPP) -std=c++17 $(DFLAGS) $(IFLAGS) -c $< -o $@
+	$(CXX) -std=c++17 $(DFLAGS) $(IFLAGS) -c $< -o $@
+
+$(BIN)/test/test$(CTEST_IDS).o: $(SRC)/$(TEST)/test$(CTEST_IDS).cpp
+	mkdir -p $(dir $@)
+	$(CXX) -std=c++17 $(DFLAGS) $(IFLAGS) -c $< -o $@

@@ -1,11 +1,11 @@
 #include "scene.h"
 
-const int SHADOW_TEX_SIZE = 4096;
-const float SHADOW_FRUSTUM_DEPTH = 100;
-const float SHADOW_FRUSTUM_WIDTH = 60;
+const int SHADOW_TEX_SIZE = 8192;
+const float SHADOW_FRUSTUM_DEPTH = 200;
+const float SHADOW_FRUSTUM_WIDTH = 500;
 
 const int VBO_2D_MAX_SIZE = 4000;
-const int VBO_3D_MAX_SIZE = 40000;
+const int VBO_3D_MAX_SIZE = 80000;
 const int VAO_3D_DATA_WIDTH = 8;
 
 const int CIRCLE_2D_RESOLUTION = 96;
@@ -113,7 +113,7 @@ void Scene::setupShadows() {
   glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   // create light space matrices
-  _lightView = glm::lookAt(-30.0f * _dLight->_dir, glm::zero<glm::vec3>(),
+  _lightView = glm::lookAt(-100.0f * _dLight->_dir, glm::zero<glm::vec3>(),
                            glm::vec3(0.0f, 1.0f, 0.001f));
   _lightProj = glm::ortho(-SHADOW_FRUSTUM_WIDTH, SHADOW_FRUSTUM_WIDTH,
                           -SHADOW_FRUSTUM_WIDTH, SHADOW_FRUSTUM_WIDTH, 0.01f,
@@ -144,19 +144,19 @@ void Scene::render() const {
   glCullFace(GL_BACK);
   glViewport(0, 0, _windowWidth, _windowHeight);
   if (_activeCamId != -1 && _dLight) {
-    _dLight->sp->use();
-    _dLight->sp->setUniform("dirLight.dir", _dLight->_dir);
-    _dLight->sp->setUniform("dirLight.ambient",
-                            colorToGlm(_dLight->_ambientColor));
-    _dLight->sp->setUniform("dirLight.diffuse",
-                            colorToGlm(_dLight->_diffuseColor));
-    _dLight->sp->setUniform("dirLight.specular",
-                            colorToGlm(_dLight->_specularColor));
-    _dLight->sp->setUniform("viewPos", activeCamera()->pos());
-    if (_useShadows) {
-      glActiveTexture(GL_TEXTURE1); // unit 0 is reserved for object textures
-      glBindTexture(GL_TEXTURE_2D, _depthMap);
-      _dLight->sp->setUniform("shadowMap", 1);
+    // set light uniforms for ALL shaders using the light!
+    for (ShaderProgram *sp : _dLight->_shaders) {
+      sp->use();
+      sp->setUniform("dirLight.dir", _dLight->_dir);
+      sp->setUniform("dirLight.ambient", colorToGlm(_dLight->_ambientColor));
+      sp->setUniform("dirLight.diffuse", colorToGlm(_dLight->_diffuseColor));
+      sp->setUniform("dirLight.specular", colorToGlm(_dLight->_specularColor));
+      sp->setUniform("viewPos", activeCamera()->pos());
+      if (_useShadows) {
+        glActiveTexture(GL_TEXTURE1); // unit 0 is reserved for object textures
+        glBindTexture(GL_TEXTURE_2D, _depthMap);
+        sp->setUniform("shadowMap", 1);
+      }
     }
     for (auto &obj : _objs) {
       obj.second->draw(activeCamera()->viewMatrix(),
@@ -453,7 +453,8 @@ void Scene::drawMultiArrow2D(GraphicsTools::ColorRgba color, float thickness,
   std::vector<float> verts_v;
   genMultiLine2D(verts_v, thickness, numPoints - 1, points);
   genArrow2D(verts_v, points[(2 * numPoints) - 4], points[(2 * numPoints) - 3],
-           points[(2 * numPoints) - 2], points[(2 * numPoints) - 1], thickness);
+             points[(2 * numPoints) - 2], points[(2 * numPoints) - 1],
+             thickness);
 
   float *verts = verts_v.data();
 
@@ -510,8 +511,8 @@ void Scene::drawAltShader2D() {
   _depth += 1.0f;
 }
 
-void Scene::genArrow2D(std::vector<float> &verts_v, float x1, float y1, float x2,
-                     float y2, float thickness) {
+void Scene::genArrow2D(std::vector<float> &verts_v, float x1, float y1,
+                       float x2, float y2, float thickness) {
   using std::sin, std::cos, std::atan2;
   float direction = atan2(y2 - y1, x2 - x1);
   float perp = direction + (M_PI / 2.0);
@@ -558,7 +559,7 @@ void Scene::genArrow2D(std::vector<float> &verts_v, float x1, float y1, float x2
 }
 
 void Scene::genMultiLine2D(std::vector<float> &verts_v, float thickness,
-                         int numPoints, float *points) {
+                           int numPoints, float *points) {
   float nearTrunc, farTrunc = 0;
   // generate verts per each pair of adjacent points
   for (int p = 0; p < numPoints - 1; ++p) {

@@ -31,10 +31,12 @@ public:
   unsigned int vao() const { return _vao; };
   unsigned int vbo() const { return _vbo; };
   const std::vector<float> vertexData() const { return _vData; };
+  ShaderProgram *shader() const { return _sp; };
 
   // setters
   void setPos(glm::vec3 newPos);
-  void setRotation(glm::vec3 eulerAngles);
+  void setRotation(glm::vec3 axis, float angle); // axis-angle rotation
+  void setRotation(glm::quat q);                 // quaternion rotation
   void setShader(ShaderProgram *prog) { _sp = prog; };
   // do this before creating geometry if using texture!
   void setTexture(Texture *tex) { _material.diffuseMap = tex; };
@@ -48,17 +50,17 @@ public:
   void genPlane(float width, float depth);
   void genTorus(float majorRadius, float minorRadius, int numMinorSegments,
                 int numMajorSegments);
+  void genLine(float thickness, int resolution, float x1, float y1, float z1, float x2, float y2, float z2);
+  void genMultiLine(float thickness, int resolution, int numPoints, float *points);
+  void clearGeometry();
 
   // draw object with OpenGL functions
   void draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat,
             ShaderProgram *overrideShader = NULL);
 
-  // debug
-  void debugPrint(std::ostream &out = std::cerr);
-
 private:
   glm::vec3 _pos;
-  glm::vec3 _rot;
+  glm::quat _rot;
   glm::mat4 _modelMat;       // computed from position and euler angles
   glm::mat4 _normalMat;      // used for lighting calcs
   std::vector<float> _vData; // interleaved positions, normals, and optional

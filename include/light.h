@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
+#include <vector>
 
 namespace GraphicsTools {
 
@@ -31,7 +32,7 @@ struct DirectionalLight {
   ColorRgba _ambientColor;
   ColorRgba _diffuseColor;
   ColorRgba _specularColor;
-  ShaderProgram *sp;
+  std::vector<ShaderProgram *> _shaders;
 };
 
 } // namespace GraphicsTools
