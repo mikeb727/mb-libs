@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include <glm/geometric.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 namespace GraphicsTools {
@@ -58,7 +59,6 @@ void RenderObject::genSphere(float radius, int numLatSegments,
                              int numLonSegments) {
   std::vector<glm::vec3> verts_v;
   std::vector<unsigned int> indices_v;
-  std::vector<glm::vec3> normals_v;
 
   // north pole
   verts_v.push_back(glm::vec3(0.0f, radius, 0.0f));
@@ -294,6 +294,151 @@ void RenderObject::genLine(float thickness, int resolution, float x1, float y1,
     _vData.push_back(verts_v.at(i).y);
   }
 };
+
+void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
+                            float z1, float x2, float y2, float z2) {
+  // use duplicate vertices in verts_v here (atypical compared to other geometry
+  // functions) to accommodate separate normals for each instance of a vertex
+  std::vector<glm::vec3> verts_v;
+  std::vector<glm::vec3> normals_v;
+
+  // generate base ring
+  std::vector<glm::vec3> baseRing;
+  for (int i = 0; i < resolution; ++i) {
+    float angle = 2 * M_PI * i / resolution;
+    baseRing.push_back(glm::vec3(0, 0.25 * thickness * std::sin(angle),
+                                 -0.25 * thickness * std::cos(angle)));
+  }
+
+  // rotate to face from (x1,y1,z1) to (x2,y2,z2)
+  glm::vec3 seg(x2 - x1, y2 - y1, z2 - z1);
+  float lat = (seg.y < 0 ? -1 : 1) * std::acos(
+      glm::dot(glm::normalize(glm::vec3(seg.x, seg.y, 0)), glm::vec3(1, 0, 0)));
+  float lon =
+      glm::length(glm::vec3(seg.x, 0, seg.z)) == 0
+          ? 0
+          : (seg.z > 0 ? -1 : 1) * std::acos(glm::dot(glm::normalize(glm::vec3(seg.x, 0, seg.z)),
+                               glm::vec3(1, 0, 0)));
+  glm::mat4 rotation =
+      glm::mat4(cos(lon) * cos(lat), cos(lon) * sin(lat), sin(lon), 0,
+                -sin(lat), cos(lat), 0, 0, -sin(lon) * cos(lat),
+                -sin(lon) * sin(lat), cos(lon), 0, 0, 0, 0, 1);
+  for (glm::vec3 &b : baseRing) {
+    b = rotation * glm::vec4(b, 1);
+  }
+  // base ring is now rotated
+
+  float headHeight = 0.5 * sqrt(3) * thickness;
+
+  // shaft base
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 triVertA =
+        glm::translate(glm::vec3(x1, y1, z1)) * glm::vec4(baseRing.at(i), 1);
+
+    glm::vec3 triVertB = glm::translate(glm::vec3(x1, y1, z1)) *
+                         glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+    glm::vec3 triVertC = glm::vec3(x1, y1, z1);
+
+    verts_v.push_back(triVertA);
+    verts_v.push_back(triVertB);
+    verts_v.push_back(triVertC);
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(-seg));
+  }
+
+  // arrow shaft vertices/triangles
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 quadVertB =
+        glm::translate(glm::vec3(x1, y1, z1)) * glm::vec4(baseRing.at(i), 1);
+    glm::vec3 quadVertA = glm::translate(glm::vec3(x1, y1, z1)) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertD = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertC = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::vec4(baseRing.at(i), 1);
+
+    verts_v.push_back(quadVertA);
+    verts_v.push_back(quadVertB);
+    verts_v.push_back(quadVertC);
+    verts_v.push_back(quadVertC);
+    verts_v.push_back(quadVertD);
+    verts_v.push_back(quadVertA);
+
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+  }
+  // arrow head base
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 quadVertB = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::vec4(baseRing.at(i), 1);
+    glm::vec3 quadVertA = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertD = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::scale(glm::vec3(2)) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertC = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::scale(glm::vec3(2)) *
+                          glm::vec4(baseRing.at(i), 1);
+
+    verts_v.push_back(quadVertA);
+    verts_v.push_back(quadVertB);
+    verts_v.push_back(quadVertC);
+    verts_v.push_back(quadVertC);
+    verts_v.push_back(quadVertD);
+    verts_v.push_back(quadVertA);
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+  }
+
+  // arrow head side
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 triVertB = glm::translate(glm::vec3(x2, y2, z2) -
+                                        glm::normalize(seg) * headHeight) *
+                         glm::scale(glm::vec3(2)) *
+                         glm::vec4(baseRing.at(i), 1);
+
+    glm::vec3 triVertA = glm::translate(glm::vec3(x2, y2, z2) -
+                                        glm::normalize(seg) * headHeight) *
+                         glm::scale(glm::vec3(2)) *
+                         glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+    glm::vec3 triVertC = glm::vec3(x2, y2, z2);
+
+    verts_v.push_back(triVertA);
+    verts_v.push_back(triVertB);
+    verts_v.push_back(triVertC);
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(seg));
+  }
+
+  for (int i = 0; i < verts_v.size(); ++i) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    _vData.push_back(normals_v.at(i).x);
+    _vData.push_back(normals_v.at(i).y);
+    _vData.push_back(normals_v.at(i).z);
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+  }
+}
 
 void RenderObject::clearGeometry() { _vData.clear(); }
 

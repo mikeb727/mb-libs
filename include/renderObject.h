@@ -51,6 +51,7 @@ public:
   void genTorus(float majorRadius, float minorRadius, int numMinorSegments,
                 int numMajorSegments);
   void genLine(float thickness, int resolution, float x1, float y1, float z1, float x2, float y2, float z2);
+  void genArrow(float thickness, int resolution, float x1, float y1, float z1, float x2, float y2, float z2);
   void genMultiLine(float thickness, int resolution, int numPoints, float *points);
   void clearGeometry();
 
