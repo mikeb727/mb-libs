@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include <glm/geometric.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 namespace GraphicsTools {
@@ -215,94 +214,13 @@ void RenderObject::genPlane(float width, float depth) {
 
 void RenderObject::genLine(float thickness, int resolution, float x1, float y1,
                            float z1, float x2, float y2, float z2) {
-  std::vector<glm::vec3> verts_v;
-  std::vector<unsigned int> indices_v;
-  std::vector<glm::vec3> normals_v;
-
-  // generate base ring
-  std::vector<glm::vec3> baseRing;
-  for (int i = 0; i < resolution; ++i) {
-    float angle = 2 * M_PI * i / resolution;
-    baseRing.push_back(glm::vec3(0, 0.5 * thickness * std::sin(angle),
-                                 -0.5 * thickness * std::cos(angle)));
-  }
-
-  // rotate to face from (x1,y1,z1) to (x2,y2,z2)
-  glm::vec3 seg(x2 - x1, y2 - y1, z2 - z1);
-  float lat = std::acos(
-      glm::dot(glm::normalize(glm::vec3(seg.x, seg.y, 0)), glm::vec3(1, 0, 0)));
-  float lon =
-      glm::length(glm::vec3(seg.x, 0, seg.z)) == 0
-          ? 0
-          : std::acos(glm::dot(glm::normalize(glm::vec3(seg.x, 0, seg.z)),
-                               glm::vec3(1, 0, 0)));
-  glm::mat4 rotation =
-      glm::mat4(cos(lon) * cos(lat), cos(lon) * sin(lat), sin(lon), 0,
-                -sin(lat), cos(lat), 0, 0, -sin(lon) * cos(lat),
-                -sin(lon) * sin(lat), cos(lon), 0, 0, 0, 0, 1);
-  // rotate and translate to (x1,y1,z1) and add to vertex list
-  for (glm::vec3 b : baseRing) {
-    glm::vec4 newVert = rotation * glm::vec4(b.x, b.y, b.z, 1);
-    verts_v.push_back(
-        glm::vec3(glm::translate(glm::vec3(x1, y1, z1)) * newVert));
-    normals_v.push_back(glm::normalize(glm::vec3(newVert)));
-  }
-  for (glm::vec3 b : baseRing) {
-    glm::vec4 newVert = rotation * glm::vec4(b.x, b.y, b.z, 1);
-    verts_v.push_back(
-        glm::vec3(glm::translate(glm::vec3(x2, y2, z2)) * newVert));
-    normals_v.push_back(glm::normalize(glm::vec3(newVert)));
-  }
-
-  verts_v.push_back({x1, y1, z1});
-  normals_v.push_back(glm::normalize(glm::vec3(x1 - x2, y1 - y2, z1 - z2)));
-
-  verts_v.push_back({x2, y2, z2});
-  normals_v.push_back(glm::normalize(glm::vec3(x2 - x1, y2 - y1, z2 - z1)));
-
-  // indices
-  for (int i = 0; i < resolution; ++i) {
-    int quadIndexA = i;
-    int quadIndexB = (i + 1) % resolution;
-    int quadIndexC = ((i + 1) % resolution) + resolution;
-    int quadIndexD = i + resolution;
-
-    indices_v.push_back(quadIndexA);
-    indices_v.push_back(2 * resolution);
-    indices_v.push_back(quadIndexB);
-
-    indices_v.push_back(quadIndexA);
-    indices_v.push_back(quadIndexB);
-    indices_v.push_back(quadIndexC);
-    indices_v.push_back(quadIndexC);
-    indices_v.push_back(quadIndexD);
-    indices_v.push_back(quadIndexA);
-
-    indices_v.push_back(quadIndexC);
-    indices_v.push_back(2 * resolution + 1);
-    indices_v.push_back(quadIndexD);
-  }
-
-  for (unsigned int i : indices_v) {
-    _vData.push_back(verts_v.at(i).x);
-    _vData.push_back(verts_v.at(i).y);
-    _vData.push_back(verts_v.at(i).z);
-    _vData.push_back(normals_v.at(i).x);
-    _vData.push_back(normals_v.at(i).y);
-    _vData.push_back(normals_v.at(i).z);
-    _vData.push_back(verts_v.at(i).x);
-    _vData.push_back(verts_v.at(i).y);
-  }
-};
-
-void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
-                            float z1, float x2, float y2, float z2) {
   // use duplicate vertices in verts_v here (atypical compared to other geometry
-  // functions) to accommodate separate normals for each instance of a vertex
+  // functions) to accommodate vertices appearing on different faces with
+  // different normals
   std::vector<glm::vec3> verts_v;
   std::vector<glm::vec3> normals_v;
 
-  // generate base ring
+  // generate base ring (wound counterclockwise)
   std::vector<glm::vec3> baseRing;
   for (int i = 0; i < resolution; ++i) {
     float angle = 2 * M_PI * i / resolution;
@@ -312,17 +230,126 @@ void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
 
   // rotate to face from (x1,y1,z1) to (x2,y2,z2)
   glm::vec3 seg(x2 - x1, y2 - y1, z2 - z1);
-  float lat = (seg.y < 0 ? -1 : 1) * std::acos(
-      glm::dot(glm::normalize(glm::vec3(seg.x, seg.y, 0)), glm::vec3(1, 0, 0)));
-  float lon =
-      glm::length(glm::vec3(seg.x, 0, seg.z)) == 0
-          ? 0
-          : (seg.z > 0 ? -1 : 1) * std::acos(glm::dot(glm::normalize(glm::vec3(seg.x, 0, seg.z)),
-                               glm::vec3(1, 0, 0)));
-  glm::mat4 rotation =
-      glm::mat4(cos(lon) * cos(lat), cos(lon) * sin(lat), sin(lon), 0,
-                -sin(lat), cos(lat), 0, 0, -sin(lon) * cos(lat),
-                -sin(lon) * sin(lat), cos(lon), 0, 0, 0, 0, 1);
+  glm::vec3 axis = glm::cross(glm::vec3(1, 0, 0), glm::normalize(seg));
+  float angle = std::acos(glm::dot(glm::vec3(1, 0, 0), glm::normalize(seg)));
+  glm::mat4 rotation;
+  if (glm::length(axis) == 0) {
+    if (angle == 0) {
+      rotation = glm::identity<glm::mat4>();
+    } else {
+      rotation = glm::rotate(glm::pi<float>(), glm::vec3(0, 1, 0));
+    }
+  } else {
+    rotation = glm::rotate(angle, axis);
+  }
+  for (glm::vec3 &b : baseRing) {
+    b = rotation * glm::vec4(b, 1);
+  }
+  // base ring is now rotated
+
+  // shaft base
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 triVertA =
+        glm::translate(glm::vec3(x1, y1, z1)) * glm::vec4(baseRing.at(i), 1);
+
+    glm::vec3 triVertB = glm::translate(glm::vec3(x1, y1, z1)) *
+                         glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+    glm::vec3 triVertC = glm::vec3(x1, y1, z1);
+
+    verts_v.push_back(triVertA);
+    verts_v.push_back(triVertC);
+    verts_v.push_back(triVertB);
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
+  }
+
+  // shaft vertices/triangles
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 quadVertA =
+        glm::translate(glm::vec3(x1, y1, z1)) * glm::vec4(baseRing.at(i), 1);
+    glm::vec3 quadVertB = glm::translate(glm::vec3(x1, y1, z1)) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertC = glm::translate(glm::vec3(x2, y2, z2)) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertD =
+        glm::translate(glm::vec3(x2, y2, z2)) * glm::vec4(baseRing.at(i), 1);
+
+    verts_v.push_back(quadVertA);
+    verts_v.push_back(quadVertB);
+    verts_v.push_back(quadVertC);
+    verts_v.push_back(quadVertC);
+    verts_v.push_back(quadVertD);
+    verts_v.push_back(quadVertA);
+
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+  }
+
+  for (int i = 0; i < resolution; ++i) {
+    glm::vec3 triVertA =
+        glm::translate(glm::vec3(x2, y2, z2)) * glm::vec4(baseRing.at(i), 1);
+
+    glm::vec3 triVertB = glm::translate(glm::vec3(x2, y2, z2)) *
+                         glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+    glm::vec3 triVertC = glm::vec3(x2, y2, z2);
+
+    verts_v.push_back(triVertA);
+    verts_v.push_back(triVertB);
+    verts_v.push_back(triVertC);
+    normals_v.push_back(glm::normalize(seg));
+    normals_v.push_back(glm::normalize(seg));
+    normals_v.push_back(glm::normalize(seg));
+  }
+
+  for (int i = 0; i < verts_v.size(); ++i) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    _vData.push_back(normals_v.at(i).x);
+    _vData.push_back(normals_v.at(i).y);
+    _vData.push_back(normals_v.at(i).z);
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+  }
+}
+
+void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
+                            float z1, float x2, float y2, float z2) {
+  // use duplicate vertices in verts_v here (atypical compared to other geometry
+  // functions) to accommodate vertices appearing on different faces with
+  // different normals
+  std::vector<glm::vec3> verts_v;
+  std::vector<glm::vec3> normals_v;
+
+  // generate base ring (wound counterclockwise)
+  std::vector<glm::vec3> baseRing;
+  for (int i = 0; i < resolution; ++i) {
+    float angle = 2 * M_PI * i / resolution;
+    baseRing.push_back(glm::vec3(0, 0.25 * thickness * std::sin(angle),
+                                 -0.25 * thickness * std::cos(angle)));
+  }
+
+  // rotate to face from (x1,y1,z1) to (x2,y2,z2)
+  glm::vec3 seg(x2 - x1, y2 - y1, z2 - z1);
+  glm::vec3 axis = glm::cross(glm::vec3(1, 0, 0), glm::normalize(seg));
+  float angle = std::acos(glm::dot(glm::vec3(1, 0, 0), glm::normalize(seg)));
+  glm::mat4 rotation;
+  if (glm::length(axis) == 0) {
+    if (angle == 0) {
+      rotation = glm::identity<glm::mat4>();
+    } else {
+      rotation = glm::rotate(glm::pi<float>(), glm::vec3(0, 1, 0));
+    }
+  } else {
+    rotation = glm::rotate(angle, axis);
+  }
   for (glm::vec3 &b : baseRing) {
     b = rotation * glm::vec4(b, 1);
   }
@@ -341,23 +368,23 @@ void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
     glm::vec3 triVertC = glm::vec3(x1, y1, z1);
 
     verts_v.push_back(triVertA);
-    verts_v.push_back(triVertB);
     verts_v.push_back(triVertC);
-    normals_v.push_back(glm::normalize(baseRing.at(i)));
-    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    verts_v.push_back(triVertB);
+    normals_v.push_back(glm::normalize(-seg));
+    normals_v.push_back(glm::normalize(-seg));
     normals_v.push_back(glm::normalize(-seg));
   }
 
-  // arrow shaft vertices/triangles
+  // // arrow shaft vertices/triangles
   for (int i = 0; i < resolution; ++i) {
-    glm::vec3 quadVertB =
+    glm::vec3 quadVertA =
         glm::translate(glm::vec3(x1, y1, z1)) * glm::vec4(baseRing.at(i), 1);
-    glm::vec3 quadVertA = glm::translate(glm::vec3(x1, y1, z1)) *
-                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
-    glm::vec3 quadVertD = glm::translate(glm::vec3(x2, y2, z2) -
-                                         glm::normalize(seg) * headHeight) *
+    glm::vec3 quadVertB = glm::translate(glm::vec3(x1, y1, z1)) *
                           glm::vec4(baseRing.at((i + 1) % resolution), 1);
     glm::vec3 quadVertC = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
+                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
+    glm::vec3 quadVertD = glm::translate(glm::vec3(x2, y2, z2) -
                                          glm::normalize(seg) * headHeight) *
                           glm::vec4(baseRing.at(i), 1);
 
@@ -368,26 +395,26 @@ void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
     verts_v.push_back(quadVertD);
     verts_v.push_back(quadVertA);
 
-    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
-    normals_v.push_back(glm::normalize(baseRing.at(i)));
-    normals_v.push_back(glm::normalize(baseRing.at(i)));
     normals_v.push_back(glm::normalize(baseRing.at(i)));
     normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
     normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at(i)));
   }
-  // arrow head base
+  // // arrow head base
   for (int i = 0; i < resolution; ++i) {
-    glm::vec3 quadVertB = glm::translate(glm::vec3(x2, y2, z2) -
-                                         glm::normalize(seg) * headHeight) *
-                          glm::vec4(baseRing.at(i), 1);
     glm::vec3 quadVertA = glm::translate(glm::vec3(x2, y2, z2) -
                                          glm::normalize(seg) * headHeight) *
+                          glm::vec4(baseRing.at(i), 1);
+    glm::vec3 quadVertB = glm::translate(glm::vec3(x2, y2, z2) -
+                                         glm::normalize(seg) * headHeight) *
                           glm::vec4(baseRing.at((i + 1) % resolution), 1);
-    glm::vec3 quadVertD = glm::translate(glm::vec3(x2, y2, z2) -
+    glm::vec3 quadVertC = glm::translate(glm::vec3(x2, y2, z2) -
                                          glm::normalize(seg) * headHeight) *
                           glm::scale(glm::vec3(2)) *
                           glm::vec4(baseRing.at((i + 1) % resolution), 1);
-    glm::vec3 quadVertC = glm::translate(glm::vec3(x2, y2, z2) -
+    glm::vec3 quadVertD = glm::translate(glm::vec3(x2, y2, z2) -
                                          glm::normalize(seg) * headHeight) *
                           glm::scale(glm::vec3(2)) *
                           glm::vec4(baseRing.at(i), 1);
@@ -406,14 +433,14 @@ void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
     normals_v.push_back(glm::normalize(-seg));
   }
 
-  // arrow head side
+  // // arrow head side
   for (int i = 0; i < resolution; ++i) {
-    glm::vec3 triVertB = glm::translate(glm::vec3(x2, y2, z2) -
+    glm::vec3 triVertA = glm::translate(glm::vec3(x2, y2, z2) -
                                         glm::normalize(seg) * headHeight) *
                          glm::scale(glm::vec3(2)) *
                          glm::vec4(baseRing.at(i), 1);
 
-    glm::vec3 triVertA = glm::translate(glm::vec3(x2, y2, z2) -
+    glm::vec3 triVertB = glm::translate(glm::vec3(x2, y2, z2) -
                                         glm::normalize(seg) * headHeight) *
                          glm::scale(glm::vec3(2)) *
                          glm::vec4(baseRing.at((i + 1) % resolution), 1);
@@ -423,8 +450,8 @@ void RenderObject::genArrow(float thickness, int resolution, float x1, float y1,
     verts_v.push_back(triVertA);
     verts_v.push_back(triVertB);
     verts_v.push_back(triVertC);
-    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
     normals_v.push_back(glm::normalize(baseRing.at(i)));
+    normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
     normals_v.push_back(glm::normalize(seg));
   }
 
@@ -445,23 +472,22 @@ void RenderObject::clearGeometry() { _vData.clear(); }
 void RenderObject::genMultiLine(float thickness, int resolution, int numPoints,
                                 float *points) {
   std::vector<glm::vec3> verts_v;
-  std::vector<unsigned int> indices_v;
   std::vector<glm::vec3> normals_v;
   float nearTrunc, farTrunc = 0;
   glm::mat4 rotation = glm::identity<glm::mat4>();
 
-  // generate base ring
+  // generate base ring (wound counterclockwise)
   std::vector<glm::vec3> baseRing;
   for (int i = 0; i < resolution; ++i) {
     float angle = 2 * M_PI * i / resolution;
     baseRing.push_back(glm::vec3(0, 0.5 * thickness * std::sin(angle),
                                  -0.5 * thickness * std::cos(angle)));
   }
+
   // for each segment (pair of points)
   for (int p = 0; p < numPoints - 1; ++p) {
-
     float x0, y0, z0, x1, y1, z1, x2, y2, z2, nextAngle;
-    glm::vec3 seg01, seg12, seg012axis;
+    glm::vec3 seg01, seg12, nextAxis;
     x0 = points[(3 * p)];
     y0 = points[(3 * p) + 1];
     z0 = points[(3 * p) + 2];
@@ -470,20 +496,25 @@ void RenderObject::genMultiLine(float thickness, int resolution, int numPoints,
     z1 = points[(3 * p) + 5];
     seg01 = {x1 - x0, y1 - y0, z1 - z0};
     // rotate to face from current point to next point
-    // compute lat/lon of first segment
+    // use base ring orientation along positive x-axis as comparison direction
+    // for first segment
     if (p == 0) {
-      float lat = std::acos(glm::dot(
-          glm::normalize(glm::vec3(seg01.x, seg01.y, 0)), glm::vec3(1, 0, 0)));
-      float lon = glm::length(glm::vec3(seg01.x, 0, seg01.z)) == 0
-                      ? 0
-                      : std::acos(glm::dot(
-                            glm::normalize(glm::vec3(seg01.x, 0, seg01.z)),
-                            glm::vec3(1, 0, 0)));
-      rotation = glm::mat4(cos(lon) * cos(lat), cos(lon) * sin(lat), sin(lon),
-                           0, -sin(lat), cos(lat), 0, 0, -sin(lon) * cos(lat),
-                           -sin(lon) * sin(lat), cos(lon), 0, 0, 0, 0, 1);
+      nextAngle =
+          std::acos(glm::dot(glm::vec3({1, 0, 0}), glm::normalize(seg01)));
+      nextAxis = glm::cross(glm::vec3({1, 0, 0}), glm::normalize(seg01));
+    }
+    // zero- and 180-degree bends
+    if (glm::length(nextAxis) == 0) {
+      // only update angle for 180-degree bend
+      if (nextAngle != 0) {
+        // cross product with arbitrary vector such that cross product is
+        // non-zero; use that as axis for 180 deg rotation
+        rotation = glm::rotate(
+            glm::pi<float>(),
+            glm::cross(seg01, glm::normalize(seg01 + glm::vec3(1))));
+      }
     } else {
-      rotation = glm::rotate(nextAngle, seg012axis);
+      rotation = glm::rotate(nextAngle, nextAxis);
     }
     if (p + 2 < numPoints) {
       x2 = points[(3 * p) + 6];
@@ -492,71 +523,343 @@ void RenderObject::genMultiLine(float thickness, int resolution, int numPoints,
       seg12 = {x2 - x1, y2 - y1, z2 - z1};
       nextAngle =
           std::acos(glm::dot(glm::normalize(seg01), glm::normalize(seg12)));
-      seg012axis = glm::cross(glm::normalize(seg01), glm::normalize(seg12));
+      nextAxis = glm::cross(glm::normalize(seg01), glm::normalize(seg12));
       farTrunc = fabs((0.5 * thickness) * std::tan(0.5 * nextAngle));
     }
-    // rotate and translate to (x1,y1,z1) and add to vertex list
     for (glm::vec3 &b : baseRing) {
       b = rotation * glm::vec4(b, 1);
-      verts_v.push_back(
-          glm::vec3(glm::translate(glm::vec3(x0, y0, z0) +
-                                   (nearTrunc * glm::normalize(seg01))) *
-                    glm::vec4(b, 1)));
-      normals_v.push_back(glm::normalize(glm::vec3(b)));
     }
-    for (glm::vec3 &b : baseRing) {
-      verts_v.push_back(
-          glm::vec3(glm::translate(glm::vec3(x1, y1, z1) -
-                                   (farTrunc * glm::normalize(seg01))) *
-                    glm::vec4(b, 1)));
-      normals_v.push_back(glm::normalize(glm::vec3(b)));
+    if (p == 0) {
+      // shaft base
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 triVertA = glm::translate(glm::vec3(x0, y0, z0)) *
+                             glm::vec4(baseRing.at(i), 1);
+
+        glm::vec3 triVertB = glm::translate(glm::vec3(x0, y0, z0)) *
+                             glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+        glm::vec3 triVertC = glm::vec3(x0, y0, z0);
+
+        verts_v.push_back(triVertA);
+        verts_v.push_back(triVertC);
+        verts_v.push_back(triVertB);
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+      }
+    }
+    // segment shaft
+    for (int i = 0; i < resolution; ++i) {
+      glm::vec3 quadVertA = glm::translate(glm::vec3(x0, y0, z0) +
+                                           glm::normalize(seg01) * nearTrunc) *
+                            glm::vec4(baseRing.at(i), 1);
+      glm::vec3 quadVertB = glm::translate(glm::vec3(x0, y0, z0) +
+                                           glm::normalize(seg01) * nearTrunc) *
+                            glm::vec4(baseRing.at((i + 1) % resolution), 1);
+      glm::vec3 quadVertC = glm::translate(glm::vec3(x1, y1, z1) -
+                                           glm::normalize(seg01) * farTrunc) *
+                            glm::vec4(baseRing.at((i + 1) % resolution), 1);
+      glm::vec3 quadVertD = glm::translate(glm::vec3(x1, y1, z1) -
+                                           glm::normalize(seg01) * farTrunc) *
+                            glm::vec4(baseRing.at(i), 1);
+
+      verts_v.push_back(quadVertA);
+      verts_v.push_back(quadVertB);
+      verts_v.push_back(quadVertC);
+      verts_v.push_back(quadVertC);
+      verts_v.push_back(quadVertD);
+      verts_v.push_back(quadVertA);
+
+      normals_v.push_back(glm::normalize(baseRing.at(i)));
+      normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+      normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+      normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+      normals_v.push_back(glm::normalize(baseRing.at(i)));
+      normals_v.push_back(glm::normalize(baseRing.at(i)));
+    }
+
+    // segment joint/line cap
+    if (p + 2 < numPoints) {
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 quadVertA = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::vec4(baseRing.at(i), 1);
+        glm::vec3 quadVertB = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::vec4(baseRing.at((i + 1) % resolution), 1);
+        glm::vec3 quadVertC = glm::translate(glm::vec3(x1, y1, z1) +
+                                             glm::normalize(seg12) * farTrunc) *
+                              glm::rotate(nextAngle, nextAxis) *
+                              glm::vec4(baseRing.at((i + 1) % resolution), 1);
+        glm::vec3 quadVertD = glm::translate(glm::vec3(x1, y1, z1) +
+                                             glm::normalize(seg12) * farTrunc) *
+                              glm::rotate(nextAngle, nextAxis) *
+                              glm::vec4(baseRing.at(i), 1);
+
+        verts_v.push_back(quadVertA);
+        verts_v.push_back(quadVertB);
+        verts_v.push_back(quadVertC);
+        verts_v.push_back(quadVertC);
+        verts_v.push_back(quadVertD);
+        verts_v.push_back(quadVertA);
+
+        normals_v.push_back(glm::normalize(baseRing.at(i)));
+        normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+        normals_v.push_back(
+            glm::normalize(glm::rotate(nextAngle, nextAxis) *
+                           glm::vec4(baseRing.at((i + 1) % resolution), 1)));
+        normals_v.push_back(
+            glm::normalize(glm::rotate(nextAngle, nextAxis) *
+                           glm::vec4(baseRing.at((i + 1) % resolution), 1)));
+        normals_v.push_back(glm::normalize(glm::rotate(nextAngle, nextAxis) *
+                                           glm::vec4(baseRing.at(i), 1)));
+        normals_v.push_back(glm::normalize(baseRing.at(i)));
+      }
+
+    } else {
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 triVertA = glm::translate(glm::vec3(x1, y1, z1)) *
+                             glm::vec4(baseRing.at(i), 1);
+
+        glm::vec3 triVertB = glm::translate(glm::vec3(x1, y1, z1)) *
+                             glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+        glm::vec3 triVertC = glm::vec3(x1, y1, z1);
+
+        verts_v.push_back(triVertA);
+        verts_v.push_back(triVertB);
+        verts_v.push_back(triVertC);
+        normals_v.push_back(glm::normalize(seg01));
+        normals_v.push_back(glm::normalize(seg01));
+        normals_v.push_back(glm::normalize(seg01));
+      }
     }
     nearTrunc = farTrunc;
     farTrunc = 0;
   }
 
-  verts_v.push_back({points[0], points[1], points[2]});
-  normals_v.push_back(glm::normalize(glm::vec3(
-      points[3] - points[0], points[4] - points[1], points[5] - points[2])));
+  for (int i = 0; i < verts_v.size(); ++i) {
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(verts_v.at(i).z);
+    _vData.push_back(normals_v.at(i).x);
+    _vData.push_back(normals_v.at(i).y);
+    _vData.push_back(normals_v.at(i).z);
+    _vData.push_back(verts_v.at(i).x);
+    _vData.push_back(verts_v.at(i).y);
+  }
+}
+void RenderObject::genMultiArrow(float thickness, int resolution, int numPoints,
+                                 float *points) {
+  std::vector<glm::vec3> verts_v;
+  std::vector<glm::vec3> normals_v;
+  float nearTrunc, farTrunc = 0;
+  glm::mat4 rotation = glm::identity<glm::mat4>();
 
-  verts_v.push_back({points[(3 * (numPoints - 1)) + 0],
-                     points[(3 * (numPoints - 1)) + 1],
-                     points[(3 * (numPoints - 1)) + 2]});
-  normals_v.push_back(glm::normalize(glm::vec3(
-      points[(3 * (numPoints - 1))] - points[(3 * (numPoints - 1)) - 3],
-      points[(3 * (numPoints - 1)) + 1] - points[(3 * (numPoints - 1)) - 2],
-      points[(3 * (numPoints - 1)) + 2] - points[(3 * (numPoints - 1)) - 1])));
+  // generate base ring (wound counterclockwise)
+  std::vector<glm::vec3> baseRing;
+  for (int i = 0; i < resolution; ++i) {
+    float angle = 2 * M_PI * i / resolution;
+    baseRing.push_back(glm::vec3(0, 0.25 * thickness * std::sin(angle),
+                                 -0.25 * thickness * std::cos(angle)));
+  }
+  float headHeight = 0.5 * sqrt(3) * thickness;
 
-  // indices (pairs of segment endpoints)
-  for (int j = 0; j < 2 * numPoints - 3; ++j) {
-    for (int i = 0; i < resolution; ++i) {
-      int quadIndexA = (j * resolution) + i;
-      int quadIndexB = (j * resolution) + (i + 1) % resolution;
-      int quadIndexC = (j * resolution) + ((i + 1) % resolution) + resolution;
-      int quadIndexD = (j * resolution) + i + resolution;
-
-      indices_v.push_back(quadIndexA);
-      indices_v.push_back(quadIndexB);
-      indices_v.push_back(quadIndexC);
-      indices_v.push_back(quadIndexC);
-      indices_v.push_back(quadIndexD);
-      indices_v.push_back(quadIndexA);
+  // for each segment (pair of points)
+  for (int p = 0; p < numPoints - 1; ++p) {
+    float x0, y0, z0, x1, y1, z1, x2, y2, z2, nextAngle;
+    glm::vec3 seg01, seg12, nextAxis;
+    x0 = points[(3 * p)];
+    y0 = points[(3 * p) + 1];
+    z0 = points[(3 * p) + 2];
+    x1 = points[(3 * p) + 3];
+    y1 = points[(3 * p) + 4];
+    z1 = points[(3 * p) + 5];
+    seg01 = {x1 - x0, y1 - y0, z1 - z0};
+    // rotate to face from current point to next point
+    // use base ring orientation along positive x-axis as comparison direction
+    // for first segment
+    if (p == 0) {
+      nextAngle =
+          std::acos(glm::dot(glm::vec3({1, 0, 0}), glm::normalize(seg01)));
+      nextAxis = glm::cross(glm::vec3({1, 0, 0}), glm::normalize(seg01));
     }
+    // zero- and 180-degree bends
+    if (glm::length(nextAxis) == 0) {
+      // only update angle for 180-degree bend
+      if (nextAngle != 0) {
+        // cross product with arbitrary vector such that cross product is
+        // non-zero; use that as axis for 180 deg rotation
+        rotation = glm::rotate(
+            glm::pi<float>(),
+            glm::cross(seg01, glm::normalize(seg01 + glm::vec3(1))));
+      }
+    } else {
+      rotation = glm::rotate(nextAngle, nextAxis);
+    }
+    if (p + 2 < numPoints) {
+      x2 = points[(3 * p) + 6];
+      y2 = points[(3 * p) + 7];
+      z2 = points[(3 * p) + 8];
+      seg12 = {x2 - x1, y2 - y1, z2 - z1};
+      nextAngle =
+          std::acos(glm::dot(glm::normalize(seg01), glm::normalize(seg12)));
+      nextAxis = glm::cross(glm::normalize(seg01), glm::normalize(seg12));
+      farTrunc = fabs((0.5 * thickness) * std::tan(0.5 * nextAngle));
+    }
+    // truncate by arrowhead height for last point
+    if (p + 2 == numPoints) {
+      farTrunc = headHeight;
+    }
+    for (glm::vec3 &b : baseRing) {
+      b = rotation * glm::vec4(b, 1);
+    }
+    if (p == 0) {
+      // shaft base
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 triVertA = glm::translate(glm::vec3(x0, y0, z0)) *
+                             glm::vec4(baseRing.at(i), 1);
+
+        glm::vec3 triVertB = glm::translate(glm::vec3(x0, y0, z0)) *
+                             glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+        glm::vec3 triVertC = glm::vec3(x0, y0, z0);
+
+        verts_v.push_back(triVertA);
+        verts_v.push_back(triVertC);
+        verts_v.push_back(triVertB);
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+      }
+    }
+    // segment shaft
+    for (int i = 0; i < resolution; ++i) {
+      glm::vec3 quadVertA = glm::translate(glm::vec3(x0, y0, z0) +
+                                           glm::normalize(seg01) * nearTrunc) *
+                            glm::vec4(baseRing.at(i), 1);
+      glm::vec3 quadVertB = glm::translate(glm::vec3(x0, y0, z0) +
+                                           glm::normalize(seg01) * nearTrunc) *
+                            glm::vec4(baseRing.at((i + 1) % resolution), 1);
+      glm::vec3 quadVertC = glm::translate(glm::vec3(x1, y1, z1) -
+                                           glm::normalize(seg01) * farTrunc) *
+                            glm::vec4(baseRing.at((i + 1) % resolution), 1);
+      glm::vec3 quadVertD = glm::translate(glm::vec3(x1, y1, z1) -
+                                           glm::normalize(seg01) * farTrunc) *
+                            glm::vec4(baseRing.at(i), 1);
+
+      verts_v.push_back(quadVertA);
+      verts_v.push_back(quadVertB);
+      verts_v.push_back(quadVertC);
+      verts_v.push_back(quadVertC);
+      verts_v.push_back(quadVertD);
+      verts_v.push_back(quadVertA);
+
+      normals_v.push_back(glm::normalize(baseRing.at(i)));
+      normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+      normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+      normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+      normals_v.push_back(glm::normalize(baseRing.at(i)));
+      normals_v.push_back(glm::normalize(baseRing.at(i)));
+    }
+
+    // segment joint/arrowhead
+    if (p + 2 < numPoints) {
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 quadVertA = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::vec4(baseRing.at(i), 1);
+        glm::vec3 quadVertB = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::vec4(baseRing.at((i + 1) % resolution), 1);
+        glm::vec3 quadVertC = glm::translate(glm::vec3(x1, y1, z1) +
+                                             glm::normalize(seg12) * farTrunc) *
+                              glm::rotate(nextAngle, nextAxis) *
+                              glm::vec4(baseRing.at((i + 1) % resolution), 1);
+        glm::vec3 quadVertD = glm::translate(glm::vec3(x1, y1, z1) +
+                                             glm::normalize(seg12) * farTrunc) *
+                              glm::rotate(nextAngle, nextAxis) *
+                              glm::vec4(baseRing.at(i), 1);
+
+        verts_v.push_back(quadVertA);
+        verts_v.push_back(quadVertB);
+        verts_v.push_back(quadVertC);
+        verts_v.push_back(quadVertC);
+        verts_v.push_back(quadVertD);
+        verts_v.push_back(quadVertA);
+
+        normals_v.push_back(glm::normalize(baseRing.at(i)));
+        normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+        normals_v.push_back(
+            glm::normalize(glm::rotate(nextAngle, nextAxis) *
+                           glm::vec4(baseRing.at((i + 1) % resolution), 1)));
+        normals_v.push_back(
+            glm::normalize(glm::rotate(nextAngle, nextAxis) *
+                           glm::vec4(baseRing.at((i + 1) % resolution), 1)));
+        normals_v.push_back(glm::normalize(glm::rotate(nextAngle, nextAxis) *
+                                           glm::vec4(baseRing.at(i), 1)));
+        normals_v.push_back(glm::normalize(baseRing.at(i)));
+      }
+
+    } else {
+      // // arrow head base
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 quadVertA = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::vec4(baseRing.at(i), 1);
+        glm::vec3 quadVertB = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::vec4(baseRing.at((i + 1) % resolution), 1);
+        glm::vec3 quadVertC = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::scale(glm::vec3(2)) *
+                              glm::vec4(baseRing.at((i + 1) % resolution), 1);
+        glm::vec3 quadVertD = glm::translate(glm::vec3(x1, y1, z1) -
+                                             glm::normalize(seg01) * farTrunc) *
+                              glm::scale(glm::vec3(2)) *
+                              glm::vec4(baseRing.at(i), 1);
+
+        verts_v.push_back(quadVertA);
+        verts_v.push_back(quadVertB);
+        verts_v.push_back(quadVertC);
+        verts_v.push_back(quadVertC);
+        verts_v.push_back(quadVertD);
+        verts_v.push_back(quadVertA);
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+        normals_v.push_back(glm::normalize(-seg01));
+      }
+
+      // // arrow head side
+      for (int i = 0; i < resolution; ++i) {
+        glm::vec3 triVertA = glm::translate(glm::vec3(x1, y1, z1) -
+                                            glm::normalize(seg01) * farTrunc) *
+                             glm::scale(glm::vec3(2)) *
+                             glm::vec4(baseRing.at(i), 1);
+
+        glm::vec3 triVertB = glm::translate(glm::vec3(x1, y1, z1) -
+                                            glm::normalize(seg01) * farTrunc) *
+                             glm::scale(glm::vec3(2)) *
+                             glm::vec4(baseRing.at((i + 1) % resolution), 1);
+
+        glm::vec3 triVertC = glm::vec3(x1, y1, z1);
+
+        verts_v.push_back(triVertA);
+        verts_v.push_back(triVertB);
+        verts_v.push_back(triVertC);
+        normals_v.push_back(glm::normalize(baseRing.at(i)));
+        normals_v.push_back(glm::normalize(baseRing.at((i + 1) % resolution)));
+        normals_v.push_back(glm::normalize(seg01));
+      }
+    }
+    nearTrunc = farTrunc;
+    farTrunc = 0;
   }
 
-  for (int i = 0; i < resolution; ++i) {
-    indices_v.push_back(i);
-    indices_v.push_back(verts_v.size() - 2);
-    indices_v.push_back((i + 1) % resolution);
-  }
-  for (int i = 0; i < resolution; ++i) {
-    indices_v.push_back((resolution * (2 * (numPoints - 1) - 1)) +
-                        (i + 1) % resolution);
-    indices_v.push_back(verts_v.size() - 1);
-    indices_v.push_back((resolution * (2 * (numPoints - 1) - 1)) + i);
-  }
-
-  for (unsigned int i : indices_v) {
+  for (int i = 0; i < verts_v.size(); ++i) {
     _vData.push_back(verts_v.at(i).x);
     _vData.push_back(verts_v.at(i).y);
     _vData.push_back(verts_v.at(i).z);
