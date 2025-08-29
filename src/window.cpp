@@ -110,18 +110,18 @@ Window::Window(std::string title, int width, int height, WindowType windowFlags)
     : WindowBase(title, width, height, Colors::Black) {
 
   // Initialize window
-  if (windowFlags & WindowType::NoDecoration) {
-    glfwWindowHint(GLFW_DECORATED, 0);
-  }
-  if (windowFlags & WindowType::AlwaysOnTop) {
-    glfwWindowHint(GLFW_FLOATING, 1);
-  }
+  glfwWindowHint(GLFW_DECORATED, !(windowFlags & WindowType::NoDecoration));
+  glfwWindowHint(GLFW_FLOATING, (windowFlags & WindowType::AlwaysOnTop));
+
   if (windowFlags & WindowType::WindowedFullscreen) {
     const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
     _width = mode->width;
     _height = mode->height;
   }
-  _win = glfwCreateWindow(_width, _height, _title.c_str(), NULL, NULL);
+
+  GLFWmonitor *fullscreenMonitor = (windowFlags & WindowType::WindowedFullscreen) ? glfwGetPrimaryMonitor() : NULL;
+
+  _win = glfwCreateWindow(_width, _height, _title.c_str(), fullscreenMonitor, NULL);
   _ready = setupGlfwWindow();
 }
 
@@ -187,6 +187,7 @@ bool Window::setupGlfwWindow() {
   glEnable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glfwGetFramebufferSize(_win, &_width, &_height);
   glViewport(0, 0, _width, _height);
 
   return true;
