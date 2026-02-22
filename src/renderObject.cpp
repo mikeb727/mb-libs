@@ -4,6 +4,11 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <iostream>
+
 namespace GraphicsTools {
 
 // assume no texture in objects by default
@@ -14,6 +19,7 @@ RenderObject::RenderObject()
 
 void RenderObject::genCube(float sideLength) {
 
+  // cube will NOT use Mesh object due to multiple normals per vertex
   std::vector<glm::vec3> verts_v;
   std::vector<unsigned int> indices_v;
   std::vector<glm::vec3> normals_v;
@@ -58,9 +64,11 @@ void RenderObject::genSphere(float radius, int numLatSegments,
                              int numLonSegments) {
   std::vector<glm::vec3> verts_v;
   std::vector<unsigned int> indices_v;
+  std::vector<glm::vec3> texture_v;
 
   // north pole
   verts_v.push_back(glm::vec3(0.0f, radius, 0.0f));
+  texture_v.push_back({0.0f, 1.0f, 0.0});
 
   // latitude rings
   for (int i = 1; i < numLatSegments; ++i) {
@@ -73,11 +81,14 @@ void RenderObject::genSphere(float radius, int numLatSegments,
       verts_v.push_back(glm::vec3(cos(majorAngle) * latRingRadius,
                                   sin(minorAngle) * radius,
                                   sin(majorAngle) * latRingRadius));
+      texture_v.push_back(
+          {j * (1.0f / numLonSegments), (numLatSegments - i) * (1.0f / numLatSegments), 0});
     }
   }
 
   // south pole
   verts_v.push_back(glm::vec3(0.0f, -radius, 0.0f));
+  texture_v.push_back({0.0f, 0.0f, 0.0});
 
   // north cap
   for (int j = 0; j < numLonSegments; ++j) {
@@ -125,8 +136,8 @@ void RenderObject::genSphere(float radius, int numLatSegments,
     _vData.push_back(normal.x);
     _vData.push_back(normal.y);
     _vData.push_back(normal.z);
-    _vData.push_back(verts_v.at(i).x);
-    _vData.push_back(verts_v.at(i).y);
+    _vData.push_back(texture_v.at(i).x);
+    _vData.push_back(texture_v.at(i).y);
   }
 }
 
@@ -871,7 +882,38 @@ void RenderObject::genMultiArrow(float thickness, int resolution, int numPoints,
   }
 }
 
-RenderObject::~RenderObject() {}
+void RenderObject::addTriangle(float x1, float y1, float z1, float x2, float y2,
+                               float z2, float x3, float y3, float z3) {
+  glm::vec3 normal =
+      glm::normalize(glm::cross(glm::vec3(x2 - x1, y2 - y1, z2 - z1),
+                                glm::vec3(x3 - x2, y3 - y2, z3 - z2)));
+  _vData.push_back(x1);
+  _vData.push_back(y1);
+  _vData.push_back(z1);
+  _vData.push_back(normal.x);
+  _vData.push_back(normal.y);
+  _vData.push_back(normal.z);
+  _vData.push_back(0);
+  _vData.push_back(0);
+  _vData.push_back(x2);
+  _vData.push_back(y2);
+  _vData.push_back(z2);
+  _vData.push_back(normal.x);
+  _vData.push_back(normal.y);
+  _vData.push_back(normal.z);
+  _vData.push_back(0);
+  _vData.push_back(0);
+  _vData.push_back(x3);
+  _vData.push_back(y3);
+  _vData.push_back(z3);
+  _vData.push_back(normal.x);
+  _vData.push_back(normal.y);
+  _vData.push_back(normal.z);
+  _vData.push_back(0);
+  _vData.push_back(0);
+}
+
+RenderObject::~RenderObject() { _vData.clear(); }
 
 void RenderObject::recalc(glm::mat4 viewMat = glm::identity<glm::mat4>()) {
   _modelMat = glm::translate(_pos) * glm::toMat4(_rot);
@@ -927,6 +969,42 @@ void RenderObject::draw(glm::mat4 viewMat, glm::mat4 projMat,
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(_vao);
   glDrawArrays(GL_TRIANGLES, 0, _vData.size() / _vDataWidth);
+}
+
+void RenderObject::loadModel(std::string path) {
+  Assimp::Importer imp;
+  const aiScene *asc = imp.ReadFile(path, aiProcess_Triangulate);
+  // assume only one mesh and get it
+  aiMesh *m = asc->mMeshes[0];
+  // process verts
+  for (int i = 0; i < m->mNumVertices; ++i) {
+    _mesh.verts.push_back(
+        {{m->mVertices[i].x, m->mVertices[i].y, m->mVertices[i].z},
+         {m->mNormals[i].x, m->mNormals[i].y, m->mNormals[i].z},
+         {m->mTextureCoords[0][i].x, m->mTextureCoords[0][i].y,
+          m->mTextureCoords[0][i].z}});
+  }
+  for (unsigned int i = 0; i < m->mNumFaces; i++) {
+    aiFace f = m->mFaces[i];
+    for (unsigned int j = 0; j < f.mNumIndices; j++)
+      _mesh.indices.push_back(f.mIndices[j]);
+  }
+
+  _mesh.populateVdata(_vData);
+}
+
+void Mesh::populateVdata(std::vector<float> &vData) {
+  vData.clear();
+  for (unsigned int i : indices) {
+    vData.push_back(verts.at(i).pos.x);
+    vData.push_back(verts.at(i).pos.y);
+    vData.push_back(verts.at(i).pos.z);
+    vData.push_back(verts.at(i).normal.x);
+    vData.push_back(verts.at(i).normal.y);
+    vData.push_back(verts.at(i).normal.z);
+    vData.push_back(verts.at(i).tex.x);
+    vData.push_back(verts.at(i).tex.y);
+  }
 }
 
 } // namespace GraphicsTools

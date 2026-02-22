@@ -123,4 +123,12 @@ std::ostream &operator<<(std::ostream &os, ColorHsva c) {
   return os;
 }
 
+bool operator==(ColorRgba lv, ColorRgba rv) {
+  return (lv.r == rv.r) && (lv.g == rv.g) && (lv.b == rv.b) && (lv.a == rv.a);
+}
+
+bool operator!=(ColorRgba lv, ColorRgba rv){
+  return !(lv == rv);
+}
+
 } // namespace GraphicsTools

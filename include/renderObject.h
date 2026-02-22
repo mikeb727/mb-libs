@@ -20,6 +20,19 @@ const float CUBE_NORMAL_SLERP_FACTOR = 0.1f;
 
 namespace GraphicsTools {
 
+struct Vertex {
+  glm::vec3 pos;
+  glm::vec3 normal;
+  glm::vec3 tex;
+};
+
+struct Mesh {
+  std::vector<Vertex> verts;
+  std::vector<unsigned int> indices;
+
+  void populateVdata(std::vector<float> &vData);
+};
+
 class RenderObject {
 public:
   // ctor, dtor
@@ -56,6 +69,11 @@ public:
   void genMultiArrow(float thickness, int resolution, int numPoints, float *points);
   void clearGeometry();
 
+  // edit geometry
+  void addTriangle(float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3);
+
+  void loadModel(std::string path);
+
   // draw object with OpenGL functions
   void draw(glm::mat4 viewMat, glm::mat4 projMat, glm::mat4 lightMat,
             ShaderProgram *overrideShader = NULL);
@@ -73,6 +91,8 @@ private:
                              // set from Scene when drawing
   ShaderProgram *_sp;
   Material _material; // including texture (diffuse map)
+
+  Mesh _mesh;
 
   void recalc(glm::mat4 viewMat);
 };

@@ -7,6 +7,7 @@
 #include <map>
 
 #include <GLFW/glfw3.h>
+#include <stdexcept>
 
 namespace GraphicsTools {
 
@@ -27,7 +28,15 @@ public:
   // getters
   int width() const { return _width; };
   int height() const { return _height; };
-  void *userPointer(std::string id) const { return _userPointers.at(id); };
+  void *userPointer(std::string id) const {
+    try {
+      return _userPointers.at(id);
+    } catch (const std::out_of_range& e) {
+      std::cerr << "[mbgfx] user pointer \"" << id
+                << "\" not found, returning null\n";
+      return nullptr;
+    }
+  };
   bool ready() const { return _ready; };
   ColorRgba clearColor() const { return _clearColor; };
 
@@ -56,7 +65,7 @@ public:
   void drawCircleGradient(GraphicsTools::ColorRgba outer,
                           GraphicsTools::ColorRgba inner, int x, int y, int r);
   void drawText(std::string str, GraphicsTools::Font *font,
-                GraphicsTools::ColorRgba, int x, int y, float angle, int width,
+                GraphicsTools::ColorRgba, GraphicsTools::ColorRgba, int x, int y, float angle, int width,
                 GraphicsTools::TextAlignModeH align =
                     GraphicsTools::TextAlignModeH::Left);
   void drawLine(GraphicsTools::ColorRgba color, int thickness, int x1, int y1,

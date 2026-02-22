@@ -68,14 +68,14 @@ void WindowBase::drawCircleGradient(GraphicsTools::ColorRgba outer,
 }
 
 void WindowBase::drawText(std::string text, GraphicsTools::Font *font,
-                          GraphicsTools::ColorRgba color, int x, int y,
+                          GraphicsTools::ColorRgba color, GraphicsTools::ColorRgba background, int x, int y,
                           float angle, int width,
                           GraphicsTools::TextAlignModeH al) {
   if (!_ready) {
     std::cerr << "window is not initialized!\n";
     return;
   }
-  _sc->drawText2D(*font, text, color, x, y, angle, width, al, 1);
+  _sc->drawText2D(*font, text, color, background, x, y, angle, width, al, 1);
 }
 
 void WindowBase::drawLine(GraphicsTools::ColorRgba color, int thickness, int x1,

@@ -2,6 +2,7 @@
 #define SCENE_H
 
 #include "camera.h"
+#include "colors.h"
 #include "font.h"
 #include "light.h"
 #include "renderObject.h"
@@ -20,6 +21,7 @@ public:
   ~Scene();
 
   // manage elements
+  void setNextId(int i) { _nextObjId = i; };
   void addRenderObject(RenderObject *obj);
   void removeRenderObject(int id) { _objs.erase(id); };
   void addCamera(Camera *cam) { _cameras.emplace(_nextCamId++, cam); };
@@ -31,6 +33,7 @@ public:
   Camera *activeCamera() const;
   int windowWidth() const { return _windowWidth; };
   int windowHeight() const { return _windowHeight; };
+  std::map<int, RenderObject *> *objs() { return &_objs; };
 
   // setters
   void setWindowDimensions(int w, int h);
@@ -44,7 +47,8 @@ public:
 
   // 2D drawing
   void drawText2D(GraphicsTools::Font font, std::string text,
-                  GraphicsTools::ColorRgba textColor, float x0, float y0,
+                  GraphicsTools::ColorRgba textColor,
+                  GraphicsTools::ColorRgba backgroundColor, float x0, float y0,
                   float angle, float width,
                   GraphicsTools::TextAlignModeH alignment, float scale,
                   GraphicsTools::ShaderProgram *overrideShader = NULL);
@@ -104,10 +108,10 @@ private:
   int _windowWidth, _windowHeight;
 
   // helper function to generate line geometries
-  void genMultiLine2D(std::vector<float> &verts_v, float thickness, int numPoints,
-                    float *points);
+  void genMultiLine2D(std::vector<float> &verts_v, float thickness,
+                      int numPoints, float *points);
   void genArrow2D(std::vector<float> &verts_v, float x1, float y1, float x2,
-                float y2, float thickness);
+                  float y2, float thickness);
 };
 
 } // namespace GraphicsTools

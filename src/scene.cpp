@@ -1,4 +1,6 @@
 #include "scene.h"
+#include "colors.h"
+#include "shader.h"
 
 const int SHADOW_TEX_SIZE = 8192;
 const float SHADOW_FRUSTUM_DEPTH = 200;
@@ -165,11 +167,19 @@ void Scene::render() const {
   }
 }
 
-void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
-                       float y0, float angle, float width,
+void Scene::drawText2D(Font font, std::string str, ColorRgba color,
+                       ColorRgba backgroundColor, float x0, float y0,
+                       float angle, float width,
                        GraphicsTools::TextAlignModeH alignment, float drawScale,
                        GraphicsTools::ShaderProgram *overrideShader) {
   glClear(GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_BLEND);
+  if (backgroundColor == Colors::None) {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  } else {
+    glBlendColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
+    glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
+  }
   GraphicsTools::ShaderProgram *sh = overrideShader ? overrideShader : _shader2;
   glm::mat4 modelMat = glm::translate(glm::vec3(x0, y0, 0.0f)) *
                        glm::rotate(angle, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -182,28 +192,46 @@ void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
   sh->setUniform("drawDepth", _depth);
   glBindVertexArray(_vao2);
 
+  // bounds for a background rectangle
+  float rX = -10, rY = 0, rW = 0, rH = 0;
+
   float x = 0, y = 0;
   // two iterators; one for drawing glyphs left to right, one for computing x
   // offset for center- and right-aligned text
   std::string::const_iterator ch;
+  float shiftTotal;
   for (ch = str.begin(); ch != str.end(); ++ch) {
-    if (x == 0 && alignment == Right) {
+    if (x == 0 && alignment != Left) {
+      float shiftMult = alignment == Center ? 0.5 : 1;
       std::string::const_iterator chAlignCalcH = ch;
-      while (x > (-width) && ch != str.end()) {
-        x -= (font.glyph(*ch).charAdvance >> 6) * drawScale;
-        std::cerr << x << std::endl;
+      // shift starting position of the line to the left until:
+      //  - max width reached (unless width is unlimited)
+      //  - newline character reached
+      //  - end of string reached
+      while ((x > (-shiftMult * width) || width == -1) &&
+             chAlignCalcH != str.end()) {
+        if ((*chAlignCalcH) == '\n')
+          break;
+        x -= shiftMult * (font.glyph(*chAlignCalcH).charAdvance >> 6) *
+             drawScale;
+        // std::cerr << x << std::endl;
         ++chAlignCalcH;
       }
+      shiftTotal = x;
     }
+    rX = std::min(x - 10, rX);
     if (*ch == '\n') {
       x = 0;
       y -= font.size() * drawScale;
+      rH += font.size() * drawScale;
       continue;
     }
     TextGlyph tch(font.glyph(*ch));
     if ((width != -1) && ((x + tch.bearingX + tch.sizeX - 0) > width)) {
+      rW = width;
       x = 0;
       y -= font.size() * drawScale;
+      rH += font.size() * drawScale;
     }
     float quadX = (x + tch.bearingX) * drawScale;
     float quadY = (y + tch.bearingY - tch.sizeY) * drawScale;
@@ -221,9 +249,37 @@ void Scene::drawText2D(Font font, std::string str, ColorRgba color, float x0,
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     x += (tch.charAdvance >> 6) * drawScale;
+    rW = std::max(x - shiftTotal, rW);
   }
-  glBindVertexArray(0);
-  _depth += 1.0f;
+  rY -= (rH + 10);
+  rW += 20;
+  rH += 30;
+  _depth -= 0.5f;
+  if (backgroundColor != Colors::None) {
+    sh->setUniform("color", colorToGlm(backgroundColor));
+    sh->setUniform("useTex", 0);
+    sh->setUniform("drawDepth", _depth);
+    float quadX = rX * drawScale;
+    float quadY = rY * drawScale;
+    float quadW = rW * drawScale;
+    float quadH = rH * drawScale;
+    float verts[6][4] = {{quadX, quadY, 0.0f, 1.0f},
+                         {quadX + quadW, quadY, 1.0f, 1.0f},
+                         {quadX + quadW, quadY + quadH, 1.0f, 0.0f},
+                         {quadX + quadW, quadY + quadH, 1.0f, 0.0f},
+                         {quadX, quadY + quadH, 0.0f, 0.0f},
+                         {quadX, quadY, 0.0f, 1.0f}};
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo2);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindVertexArray(0);
+    glBlendColor(0, 0, 0, 0);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  }
+  _depth += 1.5f;
 }
 
 void Scene::drawCircle2D(ColorRgba color, float x, float y, float r,

@@ -1,4 +1,5 @@
 #include "texture.h"
+#include "shader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -7,7 +8,7 @@ int Texture::_nextGlTextureSlot = 0;
 
 Texture::Texture(const char *path) {
   _glType = GL_TEXTURE_2D; // assume only 2D textures for now
-  _glTextureSlot = _nextGlTextureSlot++;
+  _glTextureSlot = 0;
   glGenTextures(1, &_glId);
   glBindTexture(_glType, _glId);
   int numChannels;

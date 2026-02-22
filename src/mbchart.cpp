@@ -185,7 +185,7 @@ void LineChart::draw() {
        _y += yGridInterval) {
     if (_y > yAxisMin && _y < yAxisMax) {
       parentWindow->drawText(std::to_string(_y), labelFont,
-                             GraphicsTools::Colors::White, drawPosX - 40,
+                             GraphicsTools::Colors::White, GraphicsTools::Colors::None, drawPosX - 40,
                              mapY(_y) - 10, 0, 100);
       parentWindow->drawLine(gridColor, 1, drawPosX, mapY(_y),
                              drawPosX + drawWidth, mapY(_y));

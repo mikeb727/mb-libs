@@ -23,6 +23,7 @@ struct ColorHsva {
 };
 
 namespace Colors {
+const ColorRgba None = {0, 0, 0, 0}; // zero components
 const ColorRgba Black = {0, 0, 0, 1};
 const ColorRgba Grey25 = {0.25, 0.25, 0.25, 1};
 const ColorRgba Grey = {0.5, 0.5, 0.5, 1};
@@ -47,6 +48,9 @@ glm::vec4 colorToGlm(ColorHsva c);
 
 std::ostream &operator<<(std::ostream &os, ColorRgba c);
 std::ostream &operator<<(std::ostream &os, ColorHsva c);
+
+bool operator==(ColorRgba lv, ColorRgba rv);
+bool operator!=(ColorRgba lv, ColorRgba rv);
 
 } // namespace GraphicsTools
 
